@@ -951,15 +951,14 @@ client.on(Events.MessageCreate, async message => {
 if (!process.env.DISCORD_TOKEN) {
   console.error('Nedostaje DISCORD_TOKEN u .env fajlu.');
   process.exit(1);
-}
+} // <-- OVA ZAGRADA MORA DA STOJI NA LINIJI 955 DA ZATVORI PRETHODNU KOMANDU!
 
-// -------------------------------------------------------------
+  // -------------------------------------------------------------
   // KOMANDA: .guess [broj]
   // -------------------------------------------------------------
   if (command === 'guess') {
     const userId = message.author.id;
     const userGuess = parseInt(args[0]);
-
     // 1. Pokretanje nove igre ako igrač još nema aktivnu igru
     if (!guessGames.has(userId)) {
       if (isNaN(userGuess)) {
