@@ -731,13 +731,11 @@ if (!process.env.DISCORD_TOKEN) {
   process.exit(1);
 }
 client.on(Events.MessageCreate, async message => {
-  // Ignoriši poruke koje šalju drugi botovi
   if (message.author.bot) return;
 
-  // Proveri da li je poruka tačno tag/pominjanje bota
   if (message.mentions.has(client.user) && !message.mentions.everyone) {
     const embed = new EmbedBuilder()
-      .setColor(0xFF8C00) // Narandžasta boja sa strane (kao na slici)
+      .setColor(0xFF8C00) // Narandžasta traka sa strane
       .setTitle('🤖 Haos Client — Mention')
       .setDescription(
         `• Ćao ${message.author}, ja sam personalizovani **Client** za **Haos** balkanski server.\n` +
