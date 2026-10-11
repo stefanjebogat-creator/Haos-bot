@@ -8,7 +8,11 @@ const {
   Events,
   EmbedBuilder,
   PermissionFlagsBits,
-  ActivityType
+  ActivityType,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  ChannelType
 } = require('discord.js');
 
 const PREFIX = '.';
@@ -113,7 +117,7 @@ async function confirmModeration(message, user, title, description) {
   );
 }
 
-// STATUS BOTA — TRENUTAN BROJ ČLANOVA
+// STATUS BOTA
 function updateBotStatus(guild) {
   if (!guild || !client.user) return;
 
@@ -128,7 +132,6 @@ function updateBotStatus(guild) {
 
 client.once(Events.ClientReady, bot => {
   console.log(`Bot je online: ${bot.user.tag}`);
-
   const guild = bot.guilds.cache.first();
   if (guild) updateBotStatus(guild);
 });
@@ -178,6 +181,190 @@ client.on(Events.GuildBanRemove, ban => {
   log(ban.guild, 'Ban je uklonjen', `Član: ${ban.user.tag}`);
 });
 
+// TICKET SISTEM — PANEL, OTVARANJE I ZATVARANJE
+client.on(Events.InteractionCreate, async interaction => {
+  if (!interaction.isButton() || !interaction.guild) return;
+
+  try {
+    if (interaction.customId === 'haos_ticket_create') {
+      const existing = interaction.guild.channels.cache.find(channel =>
+        channel.type === ChannelType.GuildText &&
+        channel.topic === `haos-ticket-owner:${interaction.user.id}`
+      );
+
+      if (existing) {
+        return interaction.reply({
+          content: `Već imaš otvoren ticket: ${existing}`,
+          ephemeral: true
+        });
+      }
+
+      const safeName = interaction.user.username
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, '-')
+        .replace(/-+/g, '-')
+        .slice(0, 18) || 'member';
+
+      const overwrites = [
+        {
+          id: interaction.guild.roles.everyone.id,
+          deny: [PermissionFlagsBits.ViewChannel]
+        },
+        {
+          id: interaction.user.id,
+          allow: [
+            PermissionFlagsBits.ViewChannel,
+            PermissionFlagsBits.SendMessages,
+            PermissionFlagsBits.ReadMessageHistory,
+            PermissionFlagsBits.AttachFiles,
+            PermissionFlagsBits.EmbedLinks
+          ]
+        },
+        {
+          id: client.user.id,
+          allow: [
+            PermissionFlagsBits.ViewChannel,
+            PermissionFlagsBits.SendMessages,
+            PermissionFlagsBits.ReadMessageHistory,
+            PermissionFlagsBits.ManageChannels
+          ]
+        }
+      ];
+
+      const supportRoleId = process.env.TICKET_SUPPORT_ROLE_ID;
+
+      if (supportRoleId && interaction.guild.roles.cache.has(supportRoleId)) {
+        overwrites.push({
+          id: supportRoleId,
+          allow: [
+            PermissionFlagsBits.ViewChannel,
+            PermissionFlagsBits.SendMessages,
+            PermissionFlagsBits.ReadMessageHistory,
+            PermissionFlagsBits.AttachFiles
+          ]
+        });
+      }
+
+      const channelOptions = {
+        name: `ticket-${safeName}`,
+        type: ChannelType.GuildText,
+        topic: `haos-ticket-owner:${interaction.user.id}`,
+        permissionOverwrites: overwrites,
+        reason: `Ticket otvorio/la ${interaction.user.tag}`
+      };
+
+      const categoryId = process.env.TICKET_CATEGORY_ID;
+      const category = categoryId
+        ? interaction.guild.channels.cache.get(categoryId)
+        : null;
+
+      if (category?.type === ChannelType.GuildCategory) {
+        channelOptions.parent = category.id;
+      }
+
+      const ticketChannel = await interaction.guild.channels.create(channelOptions);
+
+      const closeRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId('haos_ticket_close')
+          .setLabel('Zatvori ticket')
+          .setEmoji('🔒')
+          .setStyle(ButtonStyle.Danger)
+      );
+
+      await ticketChannel.send({
+        content: `${interaction.user}${supportRoleId ? ` <@&${supportRoleId}>` : ''}`,
+        embeds: [
+          embed(
+            '🎫 HAOS • Staff Prijave',
+            `Zdravo ${interaction.user}! Napiši detalje svoje prijave. Staff tim će ti odgovoriti ovde.\n\nKada završite razgovor, vlasnik ticketa ili staff može kliknuti na **Zatvori ticket**.`
+          )
+        ],
+        components: [closeRow],
+        allowedMentions: {
+          users: [interaction.user.id],
+          roles: supportRoleId ? [supportRoleId] : []
+        }
+      });
+
+      log(
+        interaction.guild,
+        'Ticket otvoren',
+        `Korisnik: ${interaction.user.tag}\nKanal: ${ticketChannel}`
+      );
+
+      return interaction.reply({
+        content: `Ticket je otvoren: ${ticketChannel}`,
+        ephemeral: true
+      });
+    }
+
+    if (interaction.customId === 'haos_ticket_close') {
+      const channel = interaction.channel;
+      const ownerMatch = channel?.topic?.match(/^haos-ticket-owner:(\d+)$/);
+
+      if (!ownerMatch) {
+        return interaction.reply({
+          content: 'Ovo nije prepoznat ticket kanal.',
+          ephemeral: true
+        });
+      }
+
+      const ownerId = ownerMatch[1];
+      const supportRoleId = process.env.TICKET_SUPPORT_ROLE_ID;
+      const isOwner = interaction.user.id === ownerId;
+
+      const isStaff = Boolean(
+        interaction.memberPermissions?.has(PermissionFlagsBits.ManageChannels) ||
+        (
+          supportRoleId &&
+          interaction.member.roles?.cache?.has(supportRoleId)
+        )
+      );
+
+      if (!isOwner && !isStaff) {
+        return interaction.reply({
+          content: 'Samo vlasnik ticketa ili staff može da ga zatvori.',
+          ephemeral: true
+        });
+      }
+
+      await interaction.reply({
+        embeds: [
+          embed(
+            '🔒 Ticket se zatvara',
+            `Ticket zatvara ${interaction.user}. Kanal će biti obrisan za 5 sekundi.`
+          )
+        ]
+      });
+
+      log(
+        interaction.guild,
+        'Ticket zatvoren',
+        `Kanal: #${channel.name}\nZatvorio/la: ${interaction.user.tag}`
+      );
+
+      setTimeout(() => {
+        channel.delete(`Ticket zatvorio/la ${interaction.user.tag}`)
+          .catch(console.error);
+      }, 5000);
+    }
+  } catch (error) {
+    console.error('Greška u ticket sistemu:', error);
+
+    const payload = {
+      content: 'Greška u ticket sistemu. Proveri da bot ima dozvolu Manage Channels.',
+      ephemeral: true
+    };
+
+    if (interaction.deferred || interaction.replied) {
+      await interaction.followUp(payload).catch(() => {});
+    } else {
+      await interaction.reply(payload).catch(() => {});
+    }
+  }
+});
+
 // SVE KOMANDE
 client.on(Events.MessageCreate, async message => {
   if (!message.guild || message.author.bot) return;
@@ -201,7 +388,8 @@ client.on(Events.MessageCreate, async message => {
     hb: 'hardban',
     hm: 'hardmute',
     hk: 'hardkick',
-    sb: 'softban'
+    sb: 'softban',
+    ts: 'ticketsetup'
   };
 
   command = aliases[command] || command;
@@ -223,6 +411,34 @@ client.on(Events.MessageCreate, async message => {
   };
 
   try {
+    // TICKET PANEL — STAFF PRIJAVE
+    if (command === 'ticketsetup') {
+      if (!hasPermission(PermissionFlagsBits.ManageGuild)) return;
+
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId('haos_ticket_create')
+          .setLabel('NAPRAVI TIKET')
+          .setEmoji('🎟️')
+          .setStyle(ButtonStyle.Primary)
+      );
+
+      const panel = new EmbedBuilder()
+        .setColor('#43A047')
+        .setTitle('Staff Prijave')
+        .setDescription(
+          '**STAFF PRIJAVE – REAGUJTE SA 🎟️, DA BI OTVORILI TIKET**'
+        )
+        .setFooter({
+          text: 'TicketTool.xyz - Ticketing without clutter'
+        });
+
+      return message.channel.send({
+        embeds: [panel],
+        components: [row]
+      });
+    }
+
     // HELP
     if (['help', 'pomoc', 'pomoć'].includes(command)) {
       return message.reply({
@@ -245,6 +461,8 @@ client.on(Events.MessageCreate, async message => {
             '`.giveaway` / `.gw 10m 1 Nagrada`\n' +
             '`.endgiveaway` / `.egw ID_poruke`\n' +
             '`.reroll` / `.rr ID_poruke`\n\n' +
+            '**🎫 TICKETS**\n' +
+            '`.ticketsetup` / `.ts` — postavi ticket panel\n\n' +
             '**ℹ️ OSTALO**\n' +
             '`.help` / `.h`'
           )
@@ -252,7 +470,7 @@ client.on(Events.MessageCreate, async message => {
       });
     }
 
-    // HARDBAN — trajni ban, briše poruke do 7 dana
+    // HARDBAN
     if (command === 'hardban') {
       if (!hasPermission(PermissionFlagsBits.BanMembers)) return;
       if (!target) {
@@ -264,34 +482,26 @@ client.on(Events.MessageCreate, async message => {
 
       const why = reason(args);
 
-      await dm(
-        target.user,
-        'HAOS • HARDBAN',
-        `**Moderator:** ${message.author.tag}\n**Razlog:** ${why}`
-      );
+      await dm(target.user, 'HAOS • HARDBAN',
+        `**Moderator:** ${message.author.tag}\n**Razlog:** ${why}`);
 
       await target.ban({
         deleteMessageSeconds: 604800,
         reason: `${why} | Hardban | Moderator: ${message.author.tag}`
       });
 
-      log(
-        message.guild,
-        'HARDBAN',
-        `Član: ${target.user.tag}\nModerator: ${message.author.tag}\nRazlog: ${why}`
-      );
+      log(message.guild, 'HARDBAN',
+        `Član: ${target.user.tag}\nModerator: ${message.author.tag}\nRazlog: ${why}`);
 
       return message.reply({
         embeds: [
-          embed(
-            '🔨 HARDBAN',
-            `**Član:** ${target.user.tag}\n**Poruke obrisane:** do 7 dana\n**Razlog:** ${why}`
-          )
+          embed('🔨 HARDBAN',
+            `**Član:** ${target.user.tag}\n**Poruke obrisane:** do 7 dana\n**Razlog:** ${why}`)
         ]
       });
     }
 
-    // SOFTBAN — ban pa odmah unban, briše poruke do 7 dana
+    // SOFTBAN
     if (command === 'softban') {
       if (!hasPermission(PermissionFlagsBits.BanMembers)) return;
       if (!target) {
@@ -309,104 +519,70 @@ client.on(Events.MessageCreate, async message => {
         reason: `${why} | Softban | Moderator: ${message.author.tag}`
       });
 
-      await message.guild.members.unban(
-        user.id,
-        `Softban završen | ${why}`
-      );
+      await message.guild.members.unban(user.id, `Softban završen | ${why}`);
 
-      await dm(
-        user,
-        'HAOS • SOFTBAN',
-        `Poruke iz poslednjih 7 dana su obrisane.\n**Moderator:** ${message.author.tag}\n**Razlog:** ${why}`
-      );
+      await dm(user, 'HAOS • SOFTBAN',
+        `Poruke iz poslednjih 7 dana su obrisane.\n**Moderator:** ${message.author.tag}\n**Razlog:** ${why}`);
 
-      log(
-        message.guild,
-        'SOFTBAN',
-        `Član: ${user.tag}\nModerator: ${message.author.tag}\nRazlog: ${why}`
-      );
+      log(message.guild, 'SOFTBAN',
+        `Član: ${user.tag}\nModerator: ${message.author.tag}\nRazlog: ${why}`);
 
       return message.reply({
         embeds: [
-          embed(
-            '🧹 SOFTBAN',
-            `**Korisnik:** ${user.tag}\nBan je odmah uklonjen, a poruke iz poslednjih 7 dana su obrisane.\n**Razlog:** ${why}`
-          )
+          embed('🧹 SOFTBAN',
+            `**Korisnik:** ${user.tag}\nBan je odmah uklonjen, a poruke iz poslednjih 7 dana su obrisane.\n**Razlog:** ${why}`)
         ]
       });
     }
 
-    // OBIČAN BAN
+    // BAN
     if (command === 'ban') {
       if (!hasPermission(PermissionFlagsBits.BanMembers)) return;
-      if (!target) {
-        return message.reply('Upotreba: `.ban @član [razlog]`');
-      }
+      if (!target) return message.reply('Upotreba: `.ban @član [razlog]`');
       if (!target.bannable) {
         return message.reply('Ne mogu da banujem ovog člana. Proveri uloge bota.');
       }
 
       const why = reason(args);
+      await dm(target.user, 'HAOS • Banovanje',
+        `**Moderator:** ${message.author.tag}\n**Razlog:** ${why}`);
 
-      await dm(
-        target.user,
-        'HAOS • Banovanje',
-        `**Moderator:** ${message.author.tag}\n**Razlog:** ${why}`
-      );
+      await target.ban({ reason: `${why} | Moderator: ${message.author.tag}` });
 
-      await target.ban({
-        reason: `${why} | Moderator: ${message.author.tag}`
-      });
-
-      log(
-        message.guild,
-        'Član je banovan',
-        `Član: ${target.user.tag}\nModerator: ${message.author.tag}\nRazlog: ${why}`
-      );
+      log(message.guild, 'Član je banovan',
+        `Član: ${target.user.tag}\nModerator: ${message.author.tag}\nRazlog: ${why}`);
 
       return message.reply({
         embeds: [
-          embed(
-            'Član je banovan',
-            `**Član:** ${target.user.tag}\n**Razlog:** ${why}`
-          )
+          embed('Član je banovan',
+            `**Član:** ${target.user.tag}\n**Razlog:** ${why}`)
         ]
       });
     }
 
-    // UNBAN — radi i za hardban i za običan ban
+    // UNBAN — radi i za hardban
     if (command === 'unban') {
       if (!hasPermission(PermissionFlagsBits.BanMembers)) return;
 
       const id = args.shift();
-
       if (!id || !/^\d{17,20}$/.test(id)) {
         return message.reply('Upotreba: `.unban ID [razlog]` ili `.ub ID [razlog]`');
       }
 
       const why = reason(args);
       const user = await client.users.fetch(id);
-
       await message.guild.members.unban(id, why);
 
-      await dm(
-        user,
-        'HAOS • Ban uklonjen',
-        `Vaš ban na serveru je uklonjen.\n**Moderator:** ${message.author.tag}\n**Razlog:** ${why}`
-      );
+      await dm(user, 'HAOS • Ban uklonjen',
+        `Vaš ban na serveru je uklonjen.\n**Moderator:** ${message.author.tag}\n**Razlog:** ${why}`);
 
-      log(
-        message.guild,
-        'Ban je uklonjen',
-        `Korisnik: ${user.tag}\nModerator: ${message.author.tag}\nRazlog: ${why}`
-      );
+      log(message.guild, 'Ban je uklonjen',
+        `Korisnik: ${user.tag}\nModerator: ${message.author.tag}\nRazlog: ${why}`);
 
       return message.reply({
         embeds: [
-          embed(
-            'Ban je uklonjen',
-            `**Korisnik:** ${user.tag}\n**Razlog:** ${why}`
-          )
+          embed('Ban je uklonjen',
+            `**Korisnik:** ${user.tag}\n**Razlog:** ${why}`)
         ]
       });
     }
@@ -414,104 +590,68 @@ client.on(Events.MessageCreate, async message => {
     // HARDKICK
     if (command === 'hardkick') {
       if (!hasPermission(PermissionFlagsBits.KickMembers)) return;
-      if (!target) {
-        return message.reply('Upotreba: `.hardkick @član [razlog]` ili `.hk @član [razlog]`');
-      }
+      if (!target) return message.reply('Upotreba: `.hardkick @član [razlog]` ili `.hk @član [razlog]`');
       if (!target.kickable) {
         return message.reply('Ne mogu da izbacim ovog člana. Proveri uloge bota.');
       }
 
       const why = reason(args);
+      await dm(target.user, 'HAOS • HARDKICK',
+        `**Moderator:** ${message.author.tag}\n**Razlog:** ${why}`);
 
-      await dm(
-        target.user,
-        'HAOS • HARDKICK',
-        `**Moderator:** ${message.author.tag}\n**Razlog:** ${why}`
-      );
+      await target.kick(`${why} | Hardkick | Moderator: ${message.author.tag}`);
 
-      await target.kick(
-        `${why} | Hardkick | Moderator: ${message.author.tag}`
-      );
-
-      log(
-        message.guild,
-        'HARDKICK',
-        `Član: ${target.user.tag}\nModerator: ${message.author.tag}\nRazlog: ${why}`
-      );
+      log(message.guild, 'HARDKICK',
+        `Član: ${target.user.tag}\nModerator: ${message.author.tag}\nRazlog: ${why}`);
 
       return message.reply({
         embeds: [
-          embed(
-            '👢 HARDKICK',
-            `**Član:** ${target.user.tag}\n**Razlog:** ${why}`
-          )
+          embed('👢 HARDKICK',
+            `**Član:** ${target.user.tag}\n**Razlog:** ${why}`)
         ]
       });
     }
 
-    // OBIČAN KICK
+    // KICK
     if (command === 'kick') {
       if (!hasPermission(PermissionFlagsBits.KickMembers)) return;
-      if (!target) {
-        return message.reply('Upotreba: `.kick @član [razlog]`');
-      }
-      if (!target.kickable) {
-        return message.reply('Ne mogu da izbacim ovog člana.');
-      }
+      if (!target) return message.reply('Upotreba: `.kick @član [razlog]`');
+      if (!target.kickable) return message.reply('Ne mogu da izbacim ovog člana.');
 
       const why = reason(args);
-
-      await dm(
-        target.user,
-        'HAOS • Izbacivanje',
-        `**Moderator:** ${message.author.tag}\n**Razlog:** ${why}`
-      );
+      await dm(target.user, 'HAOS • Izbacivanje',
+        `**Moderator:** ${message.author.tag}\n**Razlog:** ${why}`);
 
       await target.kick(`${why} | Moderator: ${message.author.tag}`);
 
-      log(
-        message.guild,
-        'Član je izbačen',
-        `Član: ${target.user.tag}\nModerator: ${message.author.tag}\nRazlog: ${why}`
-      );
+      log(message.guild, 'Član je izbačen',
+        `Član: ${target.user.tag}\nModerator: ${message.author.tag}\nRazlog: ${why}`);
 
       return message.reply({
         embeds: [
-          embed(
-            'Član je izbačen',
-            `**Član:** ${target.user.tag}\n**Razlog:** ${why}`
-          )
+          embed('Član je izbačen',
+            `**Član:** ${target.user.tag}\n**Razlog:** ${why}`)
         ]
       });
     }
 
-    // HARDMUTE — timeout od 28 dana
+    // HARDMUTE — 28 DANA
     if (command === 'hardmute') {
       if (!hasPermission(PermissionFlagsBits.ModerateMembers)) return;
-      if (!target) {
-        return message.reply('Upotreba: `.hardmute @član [razlog]` ili `.hm @član [razlog]`');
-      }
+      if (!target) return message.reply('Upotreba: `.hardmute @član [razlog]` ili `.hm @član [razlog]`');
       if (!target.moderatable) {
         return message.reply('Ne mogu da utišam ovog člana. Proveri uloge bota.');
       }
 
       const why = reason(args);
-      const ms = 28 * 24 * 60 * 60 * 1000;
+      await target.timeout(28 * 24 * 60 * 60 * 1000,
+        `${why} | Hardmute | Moderator: ${message.author.tag}`);
 
-      await target.timeout(
-        ms,
-        `${why} | Hardmute | Moderator: ${message.author.tag}`
-      );
-
-      return confirmModeration(
-        message,
-        target.user,
-        'HARDMUTE • 28 dana',
-        `${why}\nTrajanje: 28 dana`
-      );
+      return confirmModeration(message, target.user, 'HARDMUTE • 28 dana',
+        `${why}\nTrajanje: 28 dana`);
     }
 
-    // OBIČAN MUTE — do 7 dana
+    // MUTE
     if (command === 'mute') {
       if (!hasPermission(PermissionFlagsBits.ModerateMembers)) return;
       if (!target || !args[0]) {
@@ -521,54 +661,34 @@ client.on(Events.MessageCreate, async message => {
       const text = args.shift();
       const ms = durationMs(text);
 
-      if (!ms) {
-        return message.reply('Trajanje npr. `10m`, `2h` ili `7d` (najviše 7 dana).');
-      }
-      if (!target.moderatable) {
-        return message.reply('Ne mogu da utišam ovog člana.');
-      }
+      if (!ms) return message.reply('Trajanje npr. `10m`, `2h` ili `7d` (najviše 7 dana).');
+      if (!target.moderatable) return message.reply('Ne mogu da utišam ovog člana.');
 
       const why = reason(args);
+      await target.timeout(ms, `${why} | Moderator: ${message.author.tag}`);
 
-      await target.timeout(
-        ms,
-        `${why} | Moderator: ${message.author.tag}`
-      );
-
-      return confirmModeration(
-        message,
-        target.user,
-        'Utišavanje',
-        `${why}\nTrajanje: ${text}`
-      );
+      return confirmModeration(message, target.user, 'Utišavanje',
+        `${why}\nTrajanje: ${text}`);
     }
 
     // UNMUTE
     if (command === 'unmute') {
       if (!hasPermission(PermissionFlagsBits.ModerateMembers)) return;
-      if (!target) {
-        return message.reply('Upotreba: `.unmute @član` ili `.um @član`');
-      }
+      if (!target) return message.reply('Upotreba: `.unmute @član` ili `.um @član`');
       if (!target.moderatable) {
         return message.reply('Ne mogu da uklonim utišavanje ovom članu.');
       }
 
       await target.timeout(null, `Uklonio/la ${message.author.tag}`);
 
-      return confirmModeration(
-        message,
-        target.user,
-        'Uklanjanje utišavanja',
-        'Moderator je uklonio/la utišavanje.'
-      );
+      return confirmModeration(message, target.user, 'Uklanjanje utišavanja',
+        'Moderator je uklonio/la utišavanje.');
     }
 
     // WARN
     if (command === 'warn') {
       if (!hasPermission(PermissionFlagsBits.ModerateMembers)) return;
-      if (!target) {
-        return message.reply('Upotreba: `.warn @član [razlog]` ili `.w @član [razlog]`');
-      }
+      if (!target) return message.reply('Upotreba: `.warn @član [razlog]` ili `.w @član [razlog]`');
 
       const why = reason(args);
       const data = loadWarnings();
@@ -582,21 +702,14 @@ client.on(Events.MessageCreate, async message => {
 
       saveWarnings(data);
 
-      const sent = await dm(
-        target.user,
-        'HAOS • Upozorenje',
-        `Server: **${message.guild.name}**\n**Moderator:** ${message.author.tag}\n**Razlog:** ${why}`
-      );
+      const sent = await dm(target.user, 'HAOS • Upozorenje',
+        `Server: **${message.guild.name}**\n**Moderator:** ${message.author.tag}\n**Razlog:** ${why}`);
 
       return message.reply({
         embeds: [
-          embed(
-            'Upozorenje dodato',
-            `**Član:** ${target.user.tag}\n` +
-            `**Razlog:** ${why}\n` +
-            `**Ukupno upozorenja:** ${data[target.id].length}\n` +
-            (sent ? '📩 DM je poslat.' : '⚠️ DM nije mogao biti poslat.')
-          )
+          embed('Upozorenje dodato',
+            `**Član:** ${target.user.tag}\n**Razlog:** ${why}\n**Ukupno upozorenja:** ${data[target.id].length}\n` +
+            (sent ? '📩 DM je poslat.' : '⚠️ DM nije mogao biti poslat.'))
         ]
       });
     }
@@ -604,17 +717,13 @@ client.on(Events.MessageCreate, async message => {
     // PREGLED UPOZORENJA
     if (command === 'warnings') {
       if (!hasPermission(PermissionFlagsBits.ModerateMembers)) return;
-      if (!target) {
-        return message.reply('Upotreba: `.warnings @član` ili `.ws @član`');
-      }
+      if (!target) return message.reply('Upotreba: `.warnings @član` ili `.ws @član`');
 
       const list = loadWarnings()[target.id] || [];
 
       if (!list.length) {
         return message.reply({
-          embeds: [
-            embed('Upozorenja', 'Ovaj član nema zabeleženih upozorenja.')
-          ]
+          embeds: [embed('Upozorenja', 'Ovaj član nema zabeleženih upozorenja.')]
         });
       }
 
@@ -630,7 +739,7 @@ client.on(Events.MessageCreate, async message => {
       });
     }
 
-    // POKRETANJE NAGRADNE IGRE
+    // GIVEAWAY
     if (command === 'giveaway') {
       if (!hasPermission(PermissionFlagsBits.ManageGuild)) return;
 
@@ -638,13 +747,8 @@ client.on(Events.MessageCreate, async message => {
       const winnersCount = Number(args.shift());
       const prize = args.join(' ');
 
-      if (
-        !ms ||
-        !Number.isInteger(winnersCount) ||
-        winnersCount < 1 ||
-        winnersCount > 20 ||
-        !prize
-      ) {
+      if (!ms || !Number.isInteger(winnersCount) ||
+          winnersCount < 1 || winnersCount > 20 || !prize) {
         return message.reply('Upotreba: `.giveaway 10m 1 Nitro 1 mesec`');
       }
 
@@ -672,19 +776,13 @@ client.on(Events.MessageCreate, async message => {
       const finish = async () => {
         try {
           const reaction = post.reactions.cache.get('🎉');
-          const fetched = reaction
-            ? await reaction.users.fetch()
-            : new Map();
-
+          const fetched = reaction ? await reaction.users.fetch() : new Map();
           const entrants = [...fetched.values()].filter(u => !u.bot);
           const winners = [];
 
           while (entrants.length && winners.length < winnersCount) {
             winners.push(
-              entrants.splice(
-                Math.floor(Math.random() * entrants.length),
-                1
-              )[0]
+              entrants.splice(Math.floor(Math.random() * entrants.length), 1)[0]
             );
           }
 
@@ -725,71 +823,52 @@ client.on(Events.MessageCreate, async message => {
       giveaways.set(post.id, { timer, finish });
 
       return message.reply({
-        embeds: [
-          embed('Nagradna igra pokrenuta', `🎉 Nagrada: **${prize}**`)
-        ]
+        embeds: [embed('Nagradna igra pokrenuta', `🎉 Nagrada: **${prize}**`)]
       });
     }
 
-    // RUČNO ZAVRŠAVANJE NAGRADNE IGRE
+    // END GIVEAWAY
     if (command === 'endgiveaway') {
       if (!hasPermission(PermissionFlagsBits.ManageGuild)) return;
 
       const giveaway = giveaways.get(args[0]);
-
       if (!giveaway) {
-        return message.reply(
-          'Nisam pronašao aktivnu nagradnu igru. Koristi ID poruke nagradne igre.'
-        );
+        return message.reply('Nisam pronašao aktivnu nagradnu igru. Koristi ID poruke nagradne igre.');
       }
 
       clearTimeout(giveaway.timer);
       await giveaway.finish();
 
       return message.reply({
-        embeds: [
-          embed('Nagradna igra završena', 'Izvlačenje je završeno.')
-        ]
+        embeds: [embed('Nagradna igra završena', 'Izvlačenje je završeno.')]
       });
     }
 
-    // NOVO IZVLAČENJE POBEDNIKA
+    // REROLL
     if (command === 'reroll') {
       if (!hasPermission(PermissionFlagsBits.ManageGuild)) return;
 
       const messageId = args[0];
-      if (!messageId) {
-        return message.reply('Upotreba: `.reroll ID_poruke` ili `.rr ID_poruke`');
-      }
+      if (!messageId) return message.reply('Upotreba: `.reroll ID_poruke` ili `.rr ID_poruke`');
 
-      const giveawayMessage = await message.channel.messages
-        .fetch(messageId)
-        .catch(() => null);
-
+      const giveawayMessage = await message.channel.messages.fetch(messageId).catch(() => null);
       if (!giveawayMessage) {
         return message.reply('Ne mogu da pronađem poruku nagradne igre u ovom kanalu.');
       }
 
       const reaction = giveawayMessage.reactions.cache.get('🎉');
-      if (!reaction) {
-        return message.reply('Na toj poruci nema 🎉 reakcije.');
-      }
+      if (!reaction) return message.reply('Na toj poruci nema 🎉 reakcije.');
 
       const users = await reaction.users.fetch();
       const entrants = [...users.values()].filter(user => !user.bot);
 
-      if (!entrants.length) {
-        return message.reply('Nema učesnika za novo izvlačenje.');
-      }
+      if (!entrants.length) return message.reply('Nema učesnika za novo izvlačenje.');
 
       const winner = entrants[Math.floor(Math.random() * entrants.length)];
 
       return message.reply({
         embeds: [
-          embed(
-            '🎉 Novi pobednik',
-            `Čestitamo <@${winner.id}>! Izvučen je novi pobednik.`
-          )
+          embed('🎉 Novi pobednik', `Čestitamo <@${winner.id}>! Izvučen je novi pobednik.`)
         ],
         allowedMentions: { users: [winner.id] }
       });
@@ -800,30 +879,26 @@ client.on(Events.MessageCreate, async message => {
 
     message.reply({
       embeds: [
-        embed(
-          'Greška',
-          'Komanda nije uspela. Proveri dozvole bota i konzolu.'
-        )
+        embed('Greška', 'Komanda nije uspela. Proveri dozvole bota i konzolu.')
       ]
     }).catch(() => {});
   }
 });
 
-// ODGOVOR KADA NEKO POMENE BOTA
+// ODGOVOR NA POMINJANJE BOTA
 client.on(Events.MessageCreate, async message => {
-  if (message.author.bot) return;
+  if (message.author.bot || !client.user) return;
 
-  // Odgovor kada neko taguje bota
   if (message.mentions.has(client.user) && !message.mentions.everyone) {
-    const embed = new EmbedBuilder()
+    const mentionEmbed = new EmbedBuilder()
       .setColor(0xFF8C00)
       .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Mention')
       .setDescription(
         `- Ćao ${message.author}, ja sam personalizovani **Client** za **Haos** balkanski server.\n` +
-        `- Koristim prefix \`.\` (tačka) ako ti je potrebna pomoć kucaj \`.help\` za više informacija.`
+        '- Koristim prefix `.`. Ukucaj `.help` za više informacija.'
       );
 
-    await message.reply({ embeds: [embed] });
+    await message.reply({ embeds: [mentionEmbed] }).catch(() => {});
   }
 });
 
