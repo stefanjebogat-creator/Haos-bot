@@ -508,12 +508,12 @@ client.on(Events.MessageCreate, async message => {
       .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Komande')
       .setDescription(
         '**Moderacija:**\n' +
-        '`.ban` - Banovanje korisnika sa servera\n' +
-        '`.unban` - Uklanjanje bana preko ID-ja\n\n' +
+        '- `.ban` - Banovanje korisnika sa servera\n' +
+        '- `.unban` - Uklanjanje bana preko ID-ja\n\n' +
         '**Utility & Media:**\n' +
-        '`.ticket` - Otvaranje privatnog tiketa\n' +
-        '`.av` - Prikaz avatara korisnika\n' +
-        '`.banner` - Prikaz banera korisnika'
+        '- `.ticket` - Otvaranje privatnog tiketa\n' +
+        '- `.av` - Prikaz avatara korisnika\n' +
+        '- `.banner` - Prikaz banera korisnika'
       )
       .setTimestamp();
 
