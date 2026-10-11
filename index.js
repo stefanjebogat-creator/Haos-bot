@@ -17,6 +17,16 @@ const {
 
 const PREFIX = '.';
 const COLOR = '#F3994A';
+
+const GW_EMOJI_TADA = '<a:Tada_Green:1558763174822678528>';
+const GW_EMOJI_LOCK = '<a:lock_key:1558763080127873175>';
+const GW_EMOJI_CHECK = '<a:RD_Tick:1558762990885412988>';
+const GW_EMOJI_GIFT = '<a:gws:1558762599993188372>';
+const GW_EMOJI_ARROW = '<a:ARROW_BLUE:1558762818386530415>';
+const GW_REACTION = '1558763174822678528';
+const GW_BANNER_URL = 'https://i.imgur.com/Mu8O3ZV.png';
+const GW_COLOR = 0xFFA500;
+
 const giveaways = new Map();
 
 const client = new Client({
@@ -24,7 +34,8 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildMessageReactions
   ]
 });
 
@@ -53,6 +64,120 @@ function durationMs(text) {
 
   const ms = Number(m[1]) * unit;
   return Number(m[1]) > 0 && ms <= 604800000 ? ms : null;
+}
+
+// Giveaway trajanje: 30s, 10m, 2h, 1d, 1d2h30m
+function parseGiveawayTime(input) {
+  if (!input) return null;
+
+  const regex = /(\d+)(d|h|m|s)/gi;
+  let match;
+  let total = 0;
+  let consumed = '';
+  const units = {
+    d: 86400000,
+    h: 3600000,
+    m: 60000,
+    s: 1000
+  };
+
+  while ((match = regex.exec(input)) !== null) {
+    consumed += match[0];
+    total += Number(match[1]) * units[match[2].toLowerCase()];
+  }
+
+  if (consumed.toLowerCase() !== input.toLowerCase()) return null;
+  if (total < 10000 || total > 604800000) return null;
+
+  return total;
+}
+
+function buildGiveawayEmbed(prize, winnersCount, endTimestamp, entriesCount, ended = false, winners = '') {
+  const description = ended
+    ? `${GW_EMOJI_GIFT} **Nagrada:** ${prize}\n\n` +
+      `${GW_EMOJI_CHECK} **Pobednik/pobednici:**\n${winners || 'Nema pobednika.'}\n\n` +
+      `${GW_EMOJI_ARROW} **Broj učesnika:** ${entriesCount}`
+    : `${GW_EMOJI_GIFT} **Nagrada:** ${prize}\n\n` +
+      `${GW_EMOJI_LOCK} **Pobednika:** ${winnersCount}\n` +
+      `${GW_EMOJI_ARROW} **Završava se:** <t:${Math.floor(endTimestamp / 1000)}:R>\n\n` +
+      `${GW_EMOJI_TADA} Reaguj ovom porukom da učestvuješ!\n\n` +
+      `${GW_EMOJI_CHECK} **Učesnici:** ${entriesCount}`;
+
+  const result = new EmbedBuilder()
+    .setColor(GW_COLOR)
+    .setTitle(ended ? '🎉 NAGRADNA IGRA JE ZAVRŠENA!' : `${GW_EMOJI_TADA} HAOS GIVEAWAY`)
+    .setDescription(description)
+    .setFooter({ text: 'HAOS CLIENT • GIVEAWAYS' })
+    .setTimestamp();
+
+  if (GW_BANNER_URL) result.setImage(GW_BANNER_URL);
+  return result;
+}
+
+async function getGiveawayEntries(giveawayMessage) {
+  const reaction =
+    giveawayMessage.reactions.cache.get(GW_REACTION) ||
+    giveawayMessage.reactions.cache.find(r => r.emoji.name === '🎉');
+
+  if (!reaction) return [];
+
+  const users = await reaction.users.fetch();
+  return [...users.values()].filter(user => !user.bot);
+}
+
+async function finishNewGiveaway(messageId) {
+  const giveaway = giveaways.get(messageId);
+  if (!giveaway || giveaway.ended) return;
+
+  giveaway.ended = true;
+  clearTimeout(giveaway.timer);
+
+  try {
+    const channel = await client.channels.fetch(giveaway.channelId);
+    if (!channel?.isTextBased()) {
+      giveaways.delete(messageId);
+      return;
+    }
+
+    const giveawayMessage = await channel.messages.fetch(messageId);
+    const entrants = await getGiveawayEntries(giveawayMessage);
+    const winners = [];
+
+    while (entrants.length && winners.length < giveaway.winnersCount) {
+      const index = Math.floor(Math.random() * entrants.length);
+      winners.push(entrants.splice(index, 1)[0]);
+    }
+
+    const winnerMentions = winners.length
+      ? winners.map(user => `<@${user.id}>`).join(', ')
+      : 'Nema pobednika — niko nije učestvovao.';
+
+    await giveawayMessage.edit({
+      embeds: [
+        buildGiveawayEmbed(
+          giveaway.prize,
+          giveaway.winnersCount,
+          giveaway.endTimestamp,
+          entrants.length + winners.length,
+          true,
+          winnerMentions
+        )
+      ]
+    });
+
+    await giveawayMessage.reply({
+      content: winners.length
+        ? `🎉 Čestitamo ${winnerMentions}! Osvojili ste **${giveaway.prize}**!`
+        : 'Nagradna igra je završena bez pobednika.',
+      allowedMentions: {
+        users: winners.map(user => user.id)
+      }
+    });
+  } catch (error) {
+    console.error('Greška pri završavanju giveaway-a:', error);
+  }
+
+  giveaways.delete(messageId);
 }
 
 function loadWarnings() {
@@ -389,7 +514,10 @@ client.on(Events.MessageCreate, async message => {
     hm: 'hardmute',
     hk: 'hardkick',
     sb: 'softban',
-    ts: 'ticketsetup'
+    ts: 'ticketsetup',
+    gstart: 'gstart',
+    gend: 'gend',
+    greroll: 'greroll'
   };
 
   command = aliases[command] || command;
@@ -411,7 +539,7 @@ client.on(Events.MessageCreate, async message => {
   };
 
   try {
-    // TICKET PANEL — STAFF PRIJAVE
+    // TICKET PANEL
     if (command === 'ticketsetup') {
       if (!hasPermission(PermissionFlagsBits.ManageGuild)) return;
 
@@ -458,9 +586,9 @@ client.on(Events.MessageCreate, async message => {
             '`.warn` / `.w @član [razlog]`\n' +
             '`.warnings` / `.ws @član`\n\n' +
             '**🎉 NAGRADNE IGRE**\n' +
-            '`.giveaway` / `.gw 10m 1 Nagrada`\n' +
-            '`.endgiveaway` / `.egw ID_poruke`\n' +
-            '`.reroll` / `.rr ID_poruke`\n\n' +
+            '`.gstart 1h 2 Nitro` — pokreni giveaway\n' +
+            '`.gend ID_poruke` — završi giveaway\n' +
+            '`.greroll ID_poruke` — izaberi novog pobednika\n\n' +
             '**🎫 TICKETS**\n' +
             '`.ticketsetup` / `.ts` — postavi ticket panel\n\n' +
             '**ℹ️ OSTALO**\n' +
@@ -481,7 +609,6 @@ client.on(Events.MessageCreate, async message => {
       }
 
       const why = reason(args);
-
       await dm(target.user, 'HAOS • HARDBAN',
         `**Moderator:** ${message.author.tag}\n**Razlog:** ${why}`);
 
@@ -535,77 +662,48 @@ client.on(Events.MessageCreate, async message => {
       });
     }
 
-   
-   // BAN KOMANDA
-  if (command === 'ban') {
-    if (!message.member.permissions.has(PermissionFlagsBits.BanMembers)) {
-      const noPermEmbed = new EmbedBuilder()
-        .setColor(0xFF0000)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
-        .setDescription('- Nemate potrebne dozvole za korišćenje komande `.ban`.');
-      
-      return message.reply({ embeds: [noPermEmbed] });
-    }
+    // BAN
+    if (command === 'ban') {
+      if (!hasPermission(PermissionFlagsBits.BanMembers)) return;
 
-    const target = message.mentions.members.first();
-    const reason = args.slice(1).join(' ') || 'Nije naveden razlog';
-
-    if (!target) {
-      const noTargetEmbed = new EmbedBuilder()
-        .setColor(0xFF8C00)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Ban')
-        .setDescription(
-          `- Pogrešna upotreba komande!\n` +
-          `- Upotreba: \`.ban\` \`@član\` \`[razlog]\``
-        );
-
-      return message.reply({ embeds: [noTargetEmbed] });
-    }
-
-    if (!target.bannable) {
-      const cantBanEmbed = new EmbedBuilder()
-        .setColor(0xFF0000)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
-        .setDescription(`- Ne mogu banovati korisnika ${target}. Njegova uloga je iznad moje.`);
-
-      return message.reply({ embeds: [cantBanEmbed] });
-    }
-
-    try {
-      try {
-        const dmEmbed = new EmbedBuilder()
-          .setColor(0xFF0000)
-          .setTitle('HAOS • Banovanje')
-          .setDescription(
-            `- Banovani ste sa servera **${message.guild.name}**.\n` +
-            `- **Moderator:** ${message.author.tag}\n` +
-            `- **Razlog:** \`${reason}\``
-          );
-        await target.send({ embeds: [dmEmbed] });
-      } catch (err) {
-        // Ignoriše se ako korisnik ima ugašen DM
+      if (!target) {
+        return message.reply('Upotreba: `.ban @član [razlog]`');
       }
 
-      await target.ban({ reason: `${reason} | Moderator: ${message.author.tag}` });
+      if (!target.bannable) {
+        return message.reply('Ne mogu banovati ovog korisnika. Proveri uloge bota.');
+      }
 
-      const successEmbed = new EmbedBuilder()
-        .setColor(0xFF8C00)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Ban')
-        .setDescription(
-          `- Član **${target.user.tag}** je uspešno banovan.\n` +
-          `- **Razlog:** \`${reason}\`\n` +
-          `- **Moderator:** ${message.author}`
-        )
-        .setTimestamp();
+      const why = reason(args);
 
-    return message.reply({ embeds: [successEmbed] });
-    } catch (error) {
-      console.error(error);
-      return message.reply('- Došlo je do greške prilikom banovanja korisnika.');
+      try {
+        await target.send({
+          embeds: [
+            embed(
+              'HAOS • Banovanje',
+              `Banovani ste sa servera **${message.guild.name}**.\n` +
+              `**Moderator:** ${message.author.tag}\n**Razlog:** ${why}`
+            )
+          ]
+        });
+      } catch {}
+
+      await target.ban({
+        reason: `${why} | Moderator: ${message.author.tag}`
+      });
+
+      log(message.guild, 'BAN',
+        `Član: ${target.user.tag}\nModerator: ${message.author.tag}\nRazlog: ${why}`);
+
+      return message.reply({
+        embeds: [
+          embed('🔨 Haos Client — Ban',
+            `**Član:** ${target.user.tag}\n**Razlog:** ${why}\n**Moderator:** ${message.author.tag}`)
+        ]
+      });
     }
-  }
 
-    // UNBAN — radi i za hardban
+    // UNBAN
     if (command === 'unban') {
       if (!hasPermission(PermissionFlagsBits.BanMembers)) return;
 
@@ -680,7 +778,7 @@ client.on(Events.MessageCreate, async message => {
       });
     }
 
-    // HARDMUTE — 28 DANA
+    // HARDMUTE
     if (command === 'hardmute') {
       if (!hasPermission(PermissionFlagsBits.ModerateMembers)) return;
       if (!target) return message.reply('Upotreba: `.hardmute @član [razlog]` ili `.hm @član [razlog]`');
@@ -784,139 +882,154 @@ client.on(Events.MessageCreate, async message => {
       });
     }
 
-    // GIVEAWAY
-    if (command === 'giveaway') {
+    // NOVI GIVEAWAY SISTEM
+    if (command === 'gstart') {
       if (!hasPermission(PermissionFlagsBits.ManageGuild)) return;
 
-      const ms = durationMs(args.shift());
+      const timeInput = args.shift();
+      const ms = parseGiveawayTime(timeInput);
       const winnersCount = Number(args.shift());
-      const prize = args.join(' ');
+      const prize = args.join(' ').trim();
 
       if (!ms || !Number.isInteger(winnersCount) ||
           winnersCount < 1 || winnersCount > 20 || !prize) {
-        return message.reply('Upotreba: `.giveaway 10m 1 Nitro 1 mesec`');
+        return message.reply(
+          'Upotreba: `.gstart 1h 2 Nitro`\n' +
+          'Primer vremena: `30s`, `10m`, `2h`, `1d`, `1d2h30m`.\n' +
+          'Trajanje mora biti od 10 sekundi do 7 dana.'
+        );
       }
 
-      const endsAt = Date.now() + ms;
+      const endTimestamp = Date.now() + ms;
 
-      const post = await message.channel.send({
+      const giveawayMessage = await message.channel.send({
         embeds: [
-          new EmbedBuilder()
-            .setColor(COLOR)
-            .setTitle('🎉 NAGRADNA IGRA 🎉')
-            .setDescription(
-              `**🎁 Nagrada:** ${prize}\n\n` +
-              `**🏆 Broj pobednika:** ${winnersCount}\n` +
-              `**👤 Organizator:** ${message.author}\n\n` +
-              `Reaguj sa 🎉 da učestvuješ!\n\n` +
-              `**⏰ Završava se:** <t:${Math.floor(endsAt / 1000)}:R>`
-            )
-            .setFooter({ text: 'HAOS • Nagradne igre' })
-            .setTimestamp(endsAt)
+          buildGiveawayEmbed(prize, winnersCount, endTimestamp, 0)
         ]
       });
 
-      await post.react('🎉');
-
-      const finish = async () => {
-        try {
-          const reaction = post.reactions.cache.get('🎉');
-          const fetched = reaction ? await reaction.users.fetch() : new Map();
-          const entrants = [...fetched.values()].filter(u => !u.bot);
-          const winners = [];
-
-          while (entrants.length && winners.length < winnersCount) {
-            winners.push(
-              entrants.splice(Math.floor(Math.random() * entrants.length), 1)[0]
-            );
-          }
-
-          const names = winners.length
-            ? winners.map(u => `<@${u.id}>`).join(', ')
-            : 'Nema pobednika — niko nije učestvovao.';
-
-          await post.edit({
-            embeds: [
-              embed(
-                '🎉 NAGRADNA IGRA JE ZAVRŠENA!',
-                `**🎁 Nagrada:** ${prize}\n\n` +
-                `**🏆 Pobednik/pobednici:**\n${names}\n\n` +
-                `**👥 Broj učesnika:** ${[...fetched.values()].filter(u => !u.bot).length}`
-              )
-            ]
-          });
-
-          await post.reply({
-            embeds: [
-              embed(
-                '🏆 REZULTAT NAGRADNE IGRE',
-                winners.length
-                  ? `🎉 Čestitamo ${names}!\nOsvojili ste **${prize}**!`
-                  : 'Nagradna igra je završena bez pobednika.'
-              )
-            ],
-            allowedMentions: { parse: [] }
-          });
-        } catch (e) {
-          console.error('Greška pri završavanju nagradne igre:', e);
-        }
-
-        giveaways.delete(post.id);
-      };
-
-      const timer = setTimeout(finish, ms);
-      giveaways.set(post.id, { timer, finish });
-
-      return message.reply({
-        embeds: [embed('Nagradna igra pokrenuta', `🎉 Nagrada: **${prize}**`)]
-      });
-    }
-
-    // END GIVEAWAY
-    if (command === 'endgiveaway') {
-      if (!hasPermission(PermissionFlagsBits.ManageGuild)) return;
-
-      const giveaway = giveaways.get(args[0]);
-      if (!giveaway) {
-        return message.reply('Nisam pronašao aktivnu nagradnu igru. Koristi ID poruke nagradne igre.');
+      try {
+        await giveawayMessage.react(GW_REACTION);
+      } catch (error) {
+        console.error('Custom giveaway emoji nije mogao da se doda:', error);
+        await giveawayMessage.react('🎉').catch(() => {});
       }
 
-      clearTimeout(giveaway.timer);
-      await giveaway.finish();
+      const giveaway = {
+        messageId: giveawayMessage.id,
+        channelId: message.channel.id,
+        guildId: message.guild.id,
+        prize,
+        winnersCount,
+        endTimestamp,
+        ended: false,
+        timer: null
+      };
+
+      giveaway.timer = setTimeout(
+        () => finishNewGiveaway(giveawayMessage.id),
+        ms
+      );
+
+      giveaways.set(giveawayMessage.id, giveaway);
 
       return message.reply({
-        embeds: [embed('Nagradna igra završena', 'Izvlačenje je završeno.')]
+        embeds: [
+          embed(
+            'Giveaway pokrenut',
+            `${GW_EMOJI_CHECK} Nagradna igra je uspešno pokrenuta!\n` +
+            `${GW_EMOJI_GIFT} **Nagrada:** ${prize}\n` +
+            `${GW_EMOJI_ARROW} **Pobednika:** ${winnersCount}\n` +
+            `**ID poruke:** \`${giveawayMessage.id}\``
+          )
+        ]
       });
     }
 
-    // REROLL
-    if (command === 'reroll') {
+    // ZAVRŠI GIVEAWAY
+    if (command === 'gend') {
       if (!hasPermission(PermissionFlagsBits.ManageGuild)) return;
 
       const messageId = args[0];
-      if (!messageId) return message.reply('Upotreba: `.reroll ID_poruke` ili `.rr ID_poruke`');
-
-      const giveawayMessage = await message.channel.messages.fetch(messageId).catch(() => null);
-      if (!giveawayMessage) {
-        return message.reply('Ne mogu da pronađem poruku nagradne igre u ovom kanalu.');
+      if (!messageId) {
+        return message.reply('Upotreba: `.gend ID_poruke`');
       }
 
-      const reaction = giveawayMessage.reactions.cache.get('🎉');
-      if (!reaction) return message.reply('Na toj poruci nema 🎉 reakcije.');
+      const giveaway = giveaways.get(messageId);
+      if (!giveaway) {
+        return message.reply(
+          'Nisam pronašao aktivnu nagradnu igru. Giveaway mora biti pokrenut dok je bot online.'
+        );
+      }
 
-      const users = await reaction.users.fetch();
-      const entrants = [...users.values()].filter(user => !user.bot);
+      await finishNewGiveaway(messageId);
 
-      if (!entrants.length) return message.reply('Nema učesnika za novo izvlačenje.');
+      return message.reply({
+        embeds: [
+          embed('Giveaway završen', `${GW_EMOJI_CHECK} Izvlačenje je završeno.`)
+        ]
+      });
+    }
+
+    // REROLL GIVEAWAY
+    if (command === 'greroll') {
+      if (!hasPermission(PermissionFlagsBits.ManageGuild)) return;
+
+      const messageId = args[0];
+      if (!messageId) {
+        return message.reply('Upotreba: `.greroll ID_poruke`');
+      }
+
+      const giveaway = giveaways.get(messageId);
+
+      if (giveaway && !giveaway.ended) {
+        return message.reply('Ova nagradna igra još traje. Prvo je završi komandom `.gend ID_poruke`.');
+      }
+
+      let giveawayMessage;
+
+      try {
+        giveawayMessage = await message.channel.messages.fetch(messageId);
+      } catch {
+        return message.reply('Ne mogu da pronađem poruku. Koristi komandu u istom kanalu gde je giveaway.');
+      }
+
+      const entrants = await getGiveawayEntries(giveawayMessage);
+
+      if (!entrants.length) {
+        return message.reply('Nema učesnika za novo izvlačenje.');
+      }
 
       const winner = entrants[Math.floor(Math.random() * entrants.length)];
 
       return message.reply({
         embeds: [
-          embed('🎉 Novi pobednik', `Čestitamo <@${winner.id}>! Izvučen je novi pobednik.`)
+          embed(
+            `${GW_EMOJI_TADA} Novi pobednik`,
+            `Čestitamo <@${winner.id}>! Izvučen je novi pobednik.`
+          )
         ],
         allowedMentions: { users: [winner.id] }
       });
+    }
+
+    // STARE GIVEAWAY KOMANDE — preusmeravanje na novi sistem
+    if (command === 'giveaway') {
+      return message.reply(
+        'Koristi novi sistem: `.gstart 1h 2 Nitro`'
+      );
+    }
+
+    if (command === 'endgiveaway') {
+      return message.reply(
+        'Koristi novu komandu: `.gend ID_poruke`'
+      );
+    }
+
+    if (command === 'reroll') {
+      return message.reply(
+        'Koristi novu komandu: `.greroll ID_poruke`'
+      );
     }
 
   } catch (err) {
