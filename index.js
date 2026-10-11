@@ -602,6 +602,7 @@ client.on(Events.MessageCreate, async message => {
     } catch (error) {
       console.error(error);
       return message.reply('- Došlo je do greške prilikom banovanja korisnika.');
+      
       });
     }
 
