@@ -208,53 +208,38 @@ async function playNext(guildId) {
 
 // SVE KOMANDE
 client.on(Events.MessageCreate, async message => {
-  if (!message.guild || message.author.bot) return;
-  if (!message.content.startsWith(PREFIX)) return;
+  if (message.author.bot) return;
 
-  const args = message.content.slice(PREFIX.length).trim().split(/\s+/);
-  const command = (args.shift() || '').toLowerCase();
+  // Komanda .help
+  if (message.content.toLowerCase() === '.help') {
+    const helpEmbed = new EmbedBuilder()
+      .setColor(0xFF8C00) // Narandžasta traka
+      .setTitle('HAOS • Komande')
+      .setDescription(
+        `### 🛡️ Moderacija\n` +
+        `\`\`\`\n` +
+        `.ban @član [razlog]\n` +
+        `.unban ID [razlog]\n` +
+        `.kick @član [razlog]\n` +
+        `.mute @član 10m [razlog]\n` +
+        `.unmute @član\n` +
+        `.warn @član [razlog]\n` +
+        `.warnings @član\n` +
+        `\`\`\`\n` +
+        `### 🎉 Nagradne igre\n` +
+        `\`\`\`\n` +
+        `.giveaway 10m 1 Nagrada\n` +
+        `.endgiveaway ID_poruke\n` +
+        `\`\`\`\n` +
+        `### 🎵 Muzika\n` +
+        `\`\`\`.play naziv pesme ili YouTube link\`\`\`\n` +
+        `\`.skip\` \`.stop\` \`.pause\` \`.resume\` \`.queue\` \`.leave\``
+      )
+      .setTimestamp();
 
-  if (!command) return;
-
-  const member = message.member;
-  const target = message.mentions.members.first();
-
-  const hasPermission = permission => {
-    if (member.permissions.has(permission)) return true;
-
-    message.reply({
-      embeds: [
-        embed('Nemaš dozvolu', 'Nemaš potrebnu dozvolu za ovu komandu.')
-      ]
-    }).catch(() => {});
-
-    return false;
-  };
-
-  try {
-    // HELP
-    if (['help', 'pomoc', 'pomoć'].includes(command)) {
-      return message.reply({
-        embeds: [
-          embed(
-            'HAOS • Komande',
-            '**🛡️ Moderacija**\n' +
-            '`.ban @član [razlog]`\n' +
-            '`.unban ID [razlog]`\n' +
-            '`.kick @član [razlog]`\n' +
-            '`.mute @član 10m [razlog]`\n' +
-            '`.unmute @član`\n' +
-            '`.warn @član [razlog]`\n' +
-            '`.warnings @član`\n\n' +
-            '**🎉 Nagradne igre**\n' +
-            '`.giveaway 10m 1 Nagrada`\n' +
-            '`.endgiveaway ID_poruke`\n\n' +
-            '**🎵 Muzika**\n' +
-            '`.play naziv pesme ili YouTube link`\n' +
-            '`.skip` `.stop` `.pause` `.resume` `.queue` `.leave`'
-          )
-        ]
-      });
+    await message.reply({ embeds: [helpEmbed] });
+  }
+});
     }
 
     // BAN
