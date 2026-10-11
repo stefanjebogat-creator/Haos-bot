@@ -237,12 +237,11 @@ client.on(Events.MessageCreate, async message => {
       )
       .setTimestamp();
 
-    return message.reply({ embeds: [helpEmbed] });
+        return message.reply({ embeds: [helpEmbed] });
   }
-});
 
-    // BAN
-    if (command === 'ban') {
+  // BAN
+  if (command === 'ban') {
       if (!hasPermission(PermissionFlagsBits.BanMembers)) return;
       if (!target) return message.reply('Upotreba: `.ban @član [razlog]`');
       if (!target.bannable) {
