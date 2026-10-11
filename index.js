@@ -205,16 +205,16 @@ client.on(Events.GuildBanRemove, ban => {
           {
             id: message.guild.id,
             deny: [PermissionFlagsBits.ViewChannel],
-          },
+          }
           {
             id: message.author.id,
             allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
-          },
+          }
           {
             id: client.user.id,
             allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ManageChannels],
-          },
-        ],
+          }
+        ]
       });
 
       // Poruka unutar tiketa
