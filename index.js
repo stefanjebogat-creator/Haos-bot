@@ -952,6 +952,7 @@ if (!process.env.DISCORD_TOKEN) {
   console.error('Nedostaje DISCORD_TOKEN u .env fajlu.');
   process.exit(1);
 }
+
 // -------------------------------------------------------------
   // KOMANDA: .guess [broj]
   // -------------------------------------------------------------
