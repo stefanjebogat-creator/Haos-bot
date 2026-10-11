@@ -240,7 +240,6 @@ client.on(Events.MessageCreate, async message => {
     return message.reply({ embeds: [helpEmbed] });
   }
 });
-    }
 
     // BAN
     if (command === 'ban') {
