@@ -184,7 +184,8 @@ client.on(Events.GuildBanRemove, ban => {
 client.on(Events.MessageCreate, async message => {
   if (message.author.bot) return;
 
-  // Odgovor na .help komandu
+
+ // Odgovor na .help komandu
   if (message.content.toLowerCase() === '.help') {
     const helpEmbed = new EmbedBuilder()
       .setColor(0xFF8C00)
@@ -211,6 +212,7 @@ client.on(Events.MessageCreate, async message => {
 
     await message.reply({ embeds: [helpEmbed] });
   }
+  
 });
     
 
