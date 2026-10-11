@@ -215,7 +215,7 @@ client.on(Events.MessageCreate, async message => {
 
     const embed = new EmbedBuilder()
       .setColor(0xFF8C00)
-      .setTitle('<:985760memberserver:1558975144016216094> Haos Client — Avatar')
+      .setTitle('<:61048photosfolder:1558977971920838656> Haos Client — Avatar')
       .setDescription(
         `- Avatar korisnika: ${targetUser}\n` +
         `- [Direktan link do slike](${avatarURL})`
@@ -239,7 +239,7 @@ client.on(Events.MessageCreate, async message => {
     } catch {
       const errorEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setTitle('<:61048photosfolder:1558977971920838656> Haos Client — Greška')
         .setDescription('- Ne mogu pronaći navedenog korisnika.');
 
       return message.reply({ embeds: [errorEmbed] });
