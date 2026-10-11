@@ -721,7 +721,7 @@ client.on(Events.MessageCreate, async message => {
   if (message.mentions.has(client.user) && !message.mentions.everyone) {
     const embed = new EmbedBuilder()
       .setColor(0xFF8C00)
-      .setTitle('\<:276022clydebot:1558907359613419531> Haos Client — Mention')
+      .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Mention')
       .setDescription(
         `- Ćao ${message.author}, ja sam personalizovani **Client** za **Haos** balkanski server.\n` +
         `- Koristim prefix \`.\` (tačka) ako ti je potrebna pomoć kucaj \`.help\` za više informacija.`
