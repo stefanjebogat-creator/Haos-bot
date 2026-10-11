@@ -836,6 +836,59 @@ client.on(Events.MessageCreate, async message => {
   }
 });
 
+// AVATAR (.av)
+  if (command === 'av') {
+    const target = message.mentions.users.first() || message.author;
+    const avatarURL = target.displayAvatarURL({ size: 4096, dynamic: true });
+
+    const avEmbed = new EmbedBuilder()
+      .setColor(0xFF8C00)
+      .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Avatar')
+      .setDescription(
+        `- Avatar korisnika: ${target}\n` +
+        `- [Direktan link do slike](${avatarURL})`
+      )
+      .setImage(avatarURL)
+      .setTimestamp();
+
+    return message.reply({ embeds: [avEmbed] });
+  }
+
+  // BANNER (.banner)
+  if (command === 'banner') {
+    const target = message.mentions.users.first() || message.author;
+    
+    // Moramo da fetchujemo korisnika da bismo dobili banner podatke sa Discord-a
+    try {
+      const fetchedUser = await target.fetch();
+      const bannerURL = fetchedUser.displayBannerURL({ size: 4096, dynamic: true });
+
+      if (!bannerURL) {
+        const noBannerEmbed = new EmbedBuilder()
+          .setColor(0xFF0000)
+          .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+          .setDescription(`- Korisnik ${target} nema postavljen baner.`);
+
+        return message.reply({ embeds: [noBannerEmbed] });
+      }
+
+      const bannerEmbed = new EmbedBuilder()
+        .setColor(0xFF8C00)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Banner')
+        .setDescription(
+          `- Baner korisnika: ${target}\n` +
+          `- [Direktan link do slike](${bannerURL})`
+        )
+        .setImage(bannerURL)
+        .setTimestamp();
+
+      return message.reply({ embeds: [bannerEmbed] });
+    } catch (error) {
+      console.error(error);
+      return message.reply('- Došlo je do greške prilikom učitavanja banera.');
+    }
+  }
+
 // ODGOVOR NA POMINJANJE BOTA
 client.on(Events.MessageCreate, async message => {
   if (message.author.bot || !client.user) return;
