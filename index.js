@@ -735,11 +735,11 @@ client.on(Events.MessageCreate, async message => {
 
   if (message.mentions.has(client.user) && !message.mentions.everyone) {
     const embed = new EmbedBuilder()
-      .setColor(0xFF8C00) // Narandžasta traka sa strane
+      .setColor(0xFF8C00)
       .setTitle('🤖 Haos Client — Mention')
       .setDescription(
-        `• Ćao ${message.author}, ja sam personalizovani **Client** za **Haos** balkanski server.\n` +
-        `• Koristim prefix \`.\` (tačka) ako ti je potrebna pomoć kucaj \`.help\` za više informacija.`
+        `- Ćao ${message.author}, ja sam personalizovani **Client** za **Haos** balkanski server.\n` +
+        `- Koristim prefix \`.\` (tačka) ako ti je potrebna pomoć kucaj \`.help\` za više informacija.`
       );
 
     await message.reply({ embeds: [embed] });
