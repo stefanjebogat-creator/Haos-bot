@@ -605,29 +605,56 @@ client.on(Events.MessageCreate, async message => {
     }
   }
 
-    // UNBAN — radi i za hardban
-    if (command === 'unban') {
-      if (!hasPermission(PermissionFlagsBits.BanMembers)) return;
+// UNBAN
+  if (command === 'unban') {
+    if (!message.member.permissions.has(PermissionFlagsBits.BanMembers)) {
+      const noPermEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Nemate potrebne dozvole za korišćenje komande `.unban`.');
+      
+      return message.reply({ embeds: [noPermEmbed] });
+    }
 
-      const id = args.shift();
-      if (!id || !/^\d{17,20}$/.test(id)) {
-        return message.reply('Upotreba: `.unban ID [razlog]` ili `.ub ID [razlog]`');
-      }
+    const userId = args[0];
+    const reason = args.slice(1).join(' ') || 'Nije naveden razlog';
 
-      const why = reason(args);
-      const user = await client.users.fetch(id);
-      await message.guild.members.unban(id, why);
+    if (!userId) {
+      const noIdEmbed = new EmbedBuilder()
+        .setColor(0xFF8C00)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Unban')
+        .setDescription(
+          `- Pogrešna upotreba komande!\n` +
+          `- Upotreba: \`.unban\` \`[ID_korisnika]\` \`[razlog]\``
+        );
 
-      await dm(user, 'HAOS • Ban uklonjen',
-        `Vaš ban na serveru je uklonjen.\n**Moderator:** ${message.author.tag}\n**Razlog:** ${why}`);
+      return message.reply({ embeds: [noIdEmbed] });
+    }
 
-      log(message.guild, 'Ban je uklonjen',
-        `Korisnik: ${user.tag}\nModerator: ${message.author.tag}\nRazlog: ${why}`);
+    try {
+      const user = await message.guild.members.unban(userId, `${reason} | Moderator: ${message.author.tag}`);
 
-      return message.reply({
-        embeds: [
-          embed('Ban je uklonjen',
-            `**Korisnik:** ${user.tag}\n**Razlog:** ${why}`)
+      const successEmbed = new EmbedBuilder()
+        .setColor(0xFF8C00)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Unban')
+        .setDescription(
+          `- Uspešno sklonjen ban za korisnika **${user ? user.tag : userId}**.\n` +
+          `- **Razlog:** \`${reason}\`\n` +
+          `- **Moderator:** ${message.author}`
+        )
+        .setTimestamp();
+
+      return message.reply({ embeds: [successEmbed] });
+    } catch (error) {
+      console.error(error);
+      
+      const errorEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription(`- Ne mogu skloniti ban. Proverite da li je ID (\`${userId}\`) tačan ili da li je taj korisnik uopšte banovan.`);
+
+      return message.reply({ embeds: [errorEmbed] });
+      
         ]
       });
     }
