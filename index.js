@@ -511,7 +511,6 @@ client.on(Events.MessageCreate, async message => {
       '`.ticket` - Otvaranje privatnog tiketa\n' +
       '`.av` - Prikaz avatara korisnika\n' +
       '`.banner` - Prikaz banera korisnika' +
-    ]
     });
   }
 
