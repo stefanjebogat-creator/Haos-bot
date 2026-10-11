@@ -251,7 +251,8 @@ client.on(Events.MessageCreate, async message => {
     return message.reply({ embeds: [embed] });
   }
 
-  // OPOMENA
+ 
+  // OPOMENA + TIMEOUT
   if (command === 'opomena') {
     if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
       return message.reply('❌ Nemaš dozvolu za izdavanje opomena.');
@@ -273,37 +274,41 @@ client.on(Events.MessageCreate, async message => {
 
     const reason = args.slice(1).join(' ') || 'Nije naveden razlog';
 
-    const embed = new EmbedBuilder()
-      .setColor('#F1C40F')
-      .setTitle('⚠️ OPOMENA')
-      .addFields(
-        {
-          name: '👤 Član',
-          value: `${target.user.tag} (${target.id})`
-        },
-        {
-          name: '🛡️ Moderator',
-          value: `${message.author.tag}`
-        },
-        {
-          name: '📝 Razlog',
-          value: reason
-        }
-      )
-      .setTimestamp()
-      .setFooter({ text: 'HAOS Client • Moderacija' });
+    // Promeni 10 u 15 ako želiš timeout od 15 minuta
+    const timeoutMinutes = 10;
 
     try {
-      await target.send({ embeds: [embed] }).catch(() => null);
+      await target.timeout(
+        timeoutMinutes * 60 * 1000,
+        `Opomena od ${message.author.tag}: ${reason}`
+      );
 
+      const embed = new EmbedBuilder()
+        .setColor('#F1C40F')
+        .setTitle('⚠️ OPOMENA')
+        .addFields(
+          { name: '👤 Član', value: `${target.user.tag} (${target.id})` },
+          { name: '🛡️ Moderator', value: message.author.tag },
+          { name: '📝 Razlog', value: reason },
+          { name: '🔇 Timeout', value: `${timeoutMinutes} minuta` }
+        )
+        .setTimestamp()
+        .setFooter({ text: 'HAOS Client • Moderacija' });
+
+      await target.send({ embeds: [embed] }).catch(() => null);
       await message.channel.send({ embeds: [embed] });
 
-      return message.reply(`✅ Član ${target} je opomenut.`);
+      return message.reply(
+        `✅ ${target} je opomenut i dobio je timeout od ${timeoutMinutes} minuta.`
+      );
     } catch (error) {
-      console.error('Greška pri izdavanju opomene:', error);
-      return message.reply('❌ Došlo je do greške pri izdavanju opomene.');
+      console.error('Greška pri opominjanju:', error);
+      return message.reply(
+        '❌ Nisam uspeo da opomenem člana. Proveri dozvole bota i njegovu ulogu.'
+      );
     }
   }
+
 
   const aliases = {
     h: 'help',
