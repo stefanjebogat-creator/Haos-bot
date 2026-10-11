@@ -372,6 +372,69 @@ client.on(Events.MessageCreate, async message => {
   const args = message.content.slice(PREFIX.length).trim().split(/\s+/);
   let command = (args.shift() || '').toLowerCase();
 
+  // AVATAR KOMANDE: .av i .avatar
+  if (['av', 'avatar'].includes(command)) {
+    const member = message.mentions.users.first();
+    const userId = member?.id || args[0]?.replace(/[<@!>]/g, '');
+    let targetUser;
+
+    try {
+      targetUser = userId
+        ? await client.users.fetch(userId, { force: true })
+        : message.author;
+    } catch {
+      return message.reply('❌ Ne mogu da pronađem tog korisnika.');
+    }
+
+    const avatarURL = targetUser.displayAvatarURL({
+      size: 4096,
+      extension: 'png',
+      forceStatic: false
+    });
+
+    const embed = new EmbedBuilder()
+      .setColor('#3498DB')
+      .setTitle(`Avatar korisnika ${targetUser.username}`)
+      .setImage(avatarURL)
+      .setURL(avatarURL)
+      .setFooter({ text: `Zatražio: ${message.author.username}` });
+
+    return message.reply({ embeds: [embed] });
+  }
+
+  // BANNER KOMANDA: .banner
+  if (command === 'banner') {
+    const member = message.mentions.users.first();
+    const userId = member?.id || args[0]?.replace(/[<@!>]/g, '');
+    let targetUser;
+
+    try {
+      targetUser = userId
+        ? await client.users.fetch(userId, { force: true })
+        : await client.users.fetch(message.author.id, { force: true });
+    } catch {
+      return message.reply('❌ Ne mogu da pronađem tog korisnika.');
+    }
+
+    const bannerURL = targetUser.bannerURL({
+      size: 4096,
+      extension: 'png'
+    });
+
+    if (!bannerURL) {
+      return message.reply('❌ Ovaj korisnik nema Discord banner.');
+    }
+
+    const embed = new EmbedBuilder()
+      .setColor('#3498DB')
+      .setTitle(`Banner korisnika ${targetUser.username}`)
+      .setImage(bannerURL)
+      .setURL(bannerURL)
+      .setFooter({ text: `Zatražio: ${message.author.username}` });
+
+    return message.reply({ embeds: [embed] });
+  }
+
   const aliases = {
     h: 'help',
     b: 'ban',
