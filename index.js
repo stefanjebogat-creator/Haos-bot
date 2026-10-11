@@ -1,4 +1,3 @@
-
 require('dotenv').config();
 
 const fs = require('fs');
@@ -181,6 +180,189 @@ client.on(Events.GuildBanRemove, ban => {
   log(ban.guild, 'Ban je uklonjen', `Član: ${ban.user.tag}`);
 });
 
+// TICKET SISTEM — PANEL, OTVARANJE I ZATVARANJE
+client.on(Events.InteractionCreate, async interaction => {
+  if (!interaction.isButton() || !interaction.guild) return;
+
+  try {
+    if (interaction.customId === 'haos_ticket_create') {
+      const existing = interaction.guild.channels.cache.find(channel =>
+        channel.type === ChannelType.GuildText &&
+        channel.topic === `haos-ticket-owner:${interaction.user.id}`
+      );
+
+      if (existing) {
+        return interaction.reply({
+          content: `Već imaš otvoren ticket: ${existing}`,
+          ephemeral: true
+        });
+      }
+
+      const safeName = interaction.user.username
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, '-')
+        .replace(/-+/g, '-')
+        .slice(0, 18) || 'member';
+
+      const overwrites = [
+        {
+          id: interaction.guild.roles.everyone.id,
+          deny: [PermissionFlagsBits.ViewChannel]
+        },
+        {
+          id: interaction.user.id,
+          allow: [
+            PermissionFlagsBits.ViewChannel,
+            PermissionFlagsBits.SendMessages,
+            PermissionFlagsBits.ReadMessageHistory,
+            PermissionFlagsBits.AttachFiles,
+            PermissionFlagsBits.EmbedLinks
+          ]
+        },
+        {
+          id: client.user.id,
+          allow: [
+            PermissionFlagsBits.ViewChannel,
+            PermissionFlagsBits.SendMessages,
+            PermissionFlagsBits.ReadMessageHistory,
+            PermissionFlagsBits.ManageChannels
+          ]
+        }
+      ];
+
+      const supportRoleId = process.env.TICKET_SUPPORT_ROLE_ID;
+
+      if (supportRoleId && interaction.guild.roles.cache.has(supportRoleId)) {
+        overwrites.push({
+          id: supportRoleId,
+          allow: [
+            PermissionFlagsBits.ViewChannel,
+            PermissionFlagsBits.SendMessages,
+            PermissionFlagsBits.ReadMessageHistory,
+            PermissionFlagsBits.AttachFiles
+          ]
+        });
+      }
+
+      const channelOptions = {
+        name: `ticket-${safeName}`,
+        type: ChannelType.GuildText,
+        topic: `haos-ticket-owner:${interaction.user.id}`,
+        permissionOverwrites: overwrites,
+        reason: `Ticket otvorio/la ${interaction.user.tag}`
+      };
+
+      const categoryId = process.env.TICKET_CATEGORY_ID;
+      const category = categoryId
+        ? interaction.guild.channels.cache.get(categoryId)
+        : null;
+
+      if (category?.type === ChannelType.GuildCategory) {
+        channelOptions.parent = category.id;
+      }
+
+      const ticketChannel = await interaction.guild.channels.create(channelOptions);
+
+      const closeRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId('haos_ticket_close')
+          .setLabel('Zatvori ticket')
+          .setEmoji('🔒')
+          .setStyle(ButtonStyle.Danger)
+      );
+
+      await ticketChannel.send({
+        content: `${interaction.user}${supportRoleId ? ` <@&${supportRoleId}>` : ''}`,
+        embeds: [
+          embed(
+            '🎫 HAOS • Staff Prijave',
+            `Zdravo ${interaction.user}! Napiši detalje svoje prijave. Staff tim će ti odgovoriti ovde.\n\nKada završite razgovor, vlasnik ticketa ili staff može kliknuti na **Zatvori ticket**.`
+          )
+        ],
+        components: [closeRow],
+        allowedMentions: {
+          users: [interaction.user.id],
+          roles: supportRoleId ? [supportRoleId] : []
+        }
+      });
+
+      log(
+        interaction.guild,
+        'Ticket otvoren',
+        `Korisnik: ${interaction.user.tag}\nKanal: ${ticketChannel}`
+      );
+
+      return interaction.reply({
+        content: `Ticket je otvoren: ${ticketChannel}`,
+        ephemeral: true
+      });
+    }
+
+    if (interaction.customId === 'haos_ticket_close') {
+      const channel = interaction.channel;
+      const ownerMatch = channel?.topic?.match(/^haos-ticket-owner:(\d+)$/);
+
+      if (!ownerMatch) {
+        return interaction.reply({
+          content: 'Ovo nije prepoznat ticket kanal.',
+          ephemeral: true
+        });
+      }
+
+      const ownerId = ownerMatch[1];
+      const supportRoleId = process.env.TICKET_SUPPORT_ROLE_ID;
+      const isOwner = interaction.user.id === ownerId;
+
+      const isStaff = Boolean(
+        interaction.memberPermissions?.has(PermissionFlagsBits.ManageChannels) ||
+        (
+          supportRoleId &&
+          interaction.member.roles?.cache?.has(supportRoleId)
+        )
+      );
+
+      if (!isOwner && !isStaff) {
+        return interaction.reply({
+          content: 'Samo vlasnik ticketa ili staff može da ga zatvori.',
+          ephemeral: true
+        });
+      }
+
+      await interaction.reply({
+        embeds: [
+          embed(
+            '🔒 Ticket se zatvara',
+            `Ticket zatvara ${interaction.user}. Kanal će biti obrisan za 5 sekundi.`
+          )
+        ]
+      });
+
+      log(
+        interaction.guild,
+        'Ticket zatvoren',
+        `Kanal: #${channel.name}\nZatvorio/la: ${interaction.user.tag}`
+      );
+
+      setTimeout(() => {
+        channel.delete(`Ticket zatvorio/la ${interaction.user.tag}`)
+          .catch(console.error);
+      }, 5000);
+    }
+  } catch (error) {
+    console.error('Greška u ticket sistemu:', error);
+
+    const payload = {
+      content: 'Greška u ticket sistemu. Proveri da bot ima dozvolu Manage Channels.',
+      ephemeral: true
+    };
+
+    if (interaction.deferred || interaction.replied) {
+      await interaction.followUp(payload).catch(() => {});
+    } else {
+      await interaction.reply(payload).catch(() => {});
+    }
+  }
+});
 
 // SVE KOMANDE
 client.on(Events.MessageCreate, async message => {
@@ -422,58 +604,32 @@ client.on(Events.MessageCreate, async message => {
     }
   }
 
-// UNBAN
-  if (command === 'unban') {
-    if (!message.member.permissions.has(PermissionFlagsBits.BanMembers)) {
-      const noPermEmbed = new EmbedBuilder()
-        .setColor(0xFF0000)
-        .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
-        .setDescription('- Nemate potrebne dozvole za korišćenje komande `.unban`.');
-      
-      return message.reply({ embeds: [noPermEmbed] });
+    // UNBAN — radi i za hardban
+    if (command === 'unban') {
+      if (!hasPermission(PermissionFlagsBits.BanMembers)) return;
+
+      const id = args.shift();
+      if (!id || !/^\d{17,20}$/.test(id)) {
+        return message.reply('Upotreba: `.unban ID [razlog]` ili `.ub ID [razlog]`');
+      }
+
+      const why = reason(args);
+      const user = await client.users.fetch(id);
+      await message.guild.members.unban(id, why);
+
+      await dm(user, 'HAOS • Ban uklonjen',
+        `Vaš ban na serveru je uklonjen.\n**Moderator:** ${message.author.tag}\n**Razlog:** ${why}`);
+
+      log(message.guild, 'Ban je uklonjen',
+        `Korisnik: ${user.tag}\nModerator: ${message.author.tag}\nRazlog: ${why}`);
+
+      return message.reply({
+        embeds: [
+          embed('Ban je uklonjen',
+            `**Korisnik:** ${user.tag}\n**Razlog:** ${why}`)
+        ]
+      });
     }
-
-    const userId = args[0];
-    const reason = args.slice(1).join(' ') || 'Nije naveden razlog';
-
-    if (!userId) {
-      const noIdEmbed = new EmbedBuilder()
-        .setColor(0xFF8C00)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Unban')
-        .setDescription(
-          `- Pogrešna upotreba komande!\n` +
-          `- Upotreba: \`.unban\` \`[ID_korisnika]\` \`[razlog]\``
-        );
-
-      return message.reply({ embeds: [noIdEmbed] });
-    }
-
-    try {
-      const user = await message.guild.members.unban(userId, `${reason} | Moderator: ${message.author.tag}`);
-
-      const successEmbed = new EmbedBuilder()
-        .setColor(0xFF8C00)
-        .setTitle('<:6728_true:1558944305283080232> Haos Client — Unban')
-        .setDescription(
-          `- Uspešno uklonjen ban za korisnika **${user ? user.tag : userId}**.\n` +
-          `- **Razlog:** \`${reason}\`\n` +
-          `- **Moderator:** ${message.author}`
-        )
-        .setTimestamp();
-
-      return message.reply({ embeds: [successEmbed] })  
-   } catch (error) {
-      console.error(error);
-
-      const errorEmbed = new EmbedBuilder()
-        .setColor(0xFF0000)
-        .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
-        .setDescription('- Ne mogu da izvršim ban. Proveri dozvole bota i hijerarhiju uloga.');
-
-      return message.reply({ embeds: [errorEmbed] });
-    }
-  }
-
 
     // HARDKICK
     if (command === 'hardkick') {
@@ -773,20 +929,21 @@ client.on(Events.MessageCreate, async message => {
   }
 });
 
-    // ODGOVOR NA POMINJANJE BOTA
-    if (message.mentions.has(client.user) && !message.mentions.everyone) {
-      const mentionEmbed = new EmbedBuilder()
-        .setColor(0xFF8C00)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Mention')
-        .setDescription(
-          `- Ćao ${message.author}, ja sam personalizovani **Client** za **Haos** balkanski server.\n` +
-          '- Koristim prefix `.`. Ukucaj `.help` za više informacija.'
-        );
+// ODGOVOR NA POMINJANJE BOTA
+client.on(Events.MessageCreate, async message => {
+  if (message.author.bot || !client.user) return;
 
-      await message.reply({ embeds: [mentionEmbed] }).catch(() => {});
-    
-   }
+  if (message.mentions.has(client.user) && !message.mentions.everyone) {
+    const mentionEmbed = new EmbedBuilder()
+      .setColor(0xFF8C00)
+      .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Mention')
+      .setDescription(
+        `- Ćao ${message.author}, ja sam personalizovani **Client** za **Haos** balkanski server.\n` +
+        '- Koristim prefix `.`. Ukucaj `.help` za više informacija.'
+      );
 
+    await message.reply({ embeds: [mentionEmbed] }).catch(() => {});
+  }
 });
 
 // PROVERA TOKENA I POKRETANJE
@@ -795,7 +952,4 @@ if (!process.env.DISCORD_TOKEN) {
   process.exit(1);
 }
 
-client.login(process.env.DISCORD_TOKEN).catch(error => {
-  console.error('Bot nije uspeo da se pokrene:', error);
-});
 client.login(process.env.DISCORD_TOKEN);
