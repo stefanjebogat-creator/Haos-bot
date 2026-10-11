@@ -951,9 +951,9 @@ client.on(Events.MessageCreate, async message => {
 if (!process.env.DISCORD_TOKEN) {
   console.error('Nedostaje DISCORD_TOKEN u .env fajlu.');
   process.exit(1);
-  
-} 
+}
 
-
-  }
+client.login(process.env.DISCORD_TOKEN).catch(error => {
+  console.error('Bot nije uspeo da se pokrene:', error);
+});
 client.login(process.env.DISCORD_TOKEN);
