@@ -535,27 +535,73 @@ client.on(Events.MessageCreate, async message => {
       });
     }
 
-    // BAN
-    if (command === 'ban') {
-      if (!hasPermission(PermissionFlagsBits.BanMembers)) return;
-      if (!target) return message.reply('Upotreba: `.ban @član [razlog]`');
-      if (!target.bannable) {
-        return message.reply('Ne mogu da banujem ovog člana. Proveri uloge bota.');
+   
+   // BAN KOMANDA
+  if (command === 'ban') {
+    if (!message.member.permissions.has(PermissionFlagsBits.BanMembers)) {
+      const noPermEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Nemate potrebne dozvole za korišćenje komande `.ban`.');
+      
+      return message.reply({ embeds: [noPermEmbed] });
+    }
+
+    const target = message.mentions.members.first();
+    const reason = args.slice(1).join(' ') || 'Nije naveden razlog';
+
+    if (!target) {
+      const noTargetEmbed = new EmbedBuilder()
+        .setColor(0xFF8C00)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Ban')
+        .setDescription(
+          `- Pogrešna upotreba komande!\n` +
+          `- Upotreba: \`.ban\` \`@član\` \`[razlog]\``
+        );
+
+      return message.reply({ embeds: [noTargetEmbed] });
+    }
+
+    if (!target.bannable) {
+      const cantBanEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription(`- Ne mogu banovati korisnika ${target}. Njegova uloga je iznad moje.`);
+
+      return message.reply({ embeds: [cantBanEmbed] });
+    }
+
+    try {
+      try {
+        const dmEmbed = new EmbedBuilder()
+          .setColor(0xFF0000)
+          .setTitle('HAOS • Banovanje')
+          .setDescription(
+            `- Banovani ste sa servera **${message.guild.name}**.\n` +
+            `- **Moderator:** ${message.author.tag}\n` +
+            `- **Razlog:** \`${reason}\``
+          );
+        await target.send({ embeds: [dmEmbed] });
+      } catch (err) {
+        // Ignoriše se ako korisnik ima ugašen DM
       }
 
-      const why = reason(args);
-      await dm(target.user, 'HAOS • Banovanje',
-        `**Moderator:** ${message.author.tag}\n**Razlog:** ${why}`);
+      await target.ban({ reason: `${reason} | Moderator: ${message.author.tag}` });
 
-      await target.ban({ reason: `${why} | Moderator: ${message.author.tag}` });
+      const successEmbed = new EmbedBuilder()
+        .setColor(0xFF8C00)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Ban')
+        .setDescription(
+          `- Član **${target.user.tag}** je uspešno banovan.\n` +
+          `- **Razlog:** \`${reason}\`\n` +
+          `- **Moderator:** ${message.author}`
+        )
+        .setTimestamp();
 
-      log(message.guild, 'Član je banovan',
-        `Član: ${target.user.tag}\nModerator: ${message.author.tag}\nRazlog: ${why}`);
-
-      return message.reply({
-        embeds: [
-          embed('Član je banovan',
-            `**Član:** ${target.user.tag}\n**Razlog:** ${why}`)
+      return message.reply({ embeds: [successEmbed] });
+    } catch (error) {
+      console.error(error);
+      return message.reply('- Došlo je do greške prilikom banovanja korisnika.');
         ]
       });
     }
