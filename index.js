@@ -181,77 +181,92 @@ client.on(Events.GuildBanRemove, ban => {
   log(ban.guild, 'Ban je uklonjen', `Član: ${ban.user.tag}`);
 });
 
-// TICKET
-  if (command === 'ticket') {
-    const channelName = `ticket-${message.author.username}`.toLowerCase();
-
-    // Provera da li već postoji kanal
-    const existingChannel = message.guild.channels.cache.find(c => c.name === channelName);
-    if (existingChannel) {
-      const alreadyOpenEmbed = new EmbedBuilder()
-        .setColor(0xFF0000)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
-        .setDescription(`- Već imate otvoren tiket kanal: ${existingChannel}`);
-
-      return message.reply({ embeds: [alreadyOpenEmbed] });
+        return message.reply(`Uspešno si otvorio/la ticket: ${ticketChannel}`);
+      } catch (error) {
+        console.error('Greška pri kreiranju ticketa:', error);
+        return message.reply('❌ Došlo je do greške prilikom kreiranja ticketa.');
+      }
     }
-
-    try {
-      // Kreiranje privatnog tekstualnog kanala
-      const ticketChannel = await message.guild.channels.create({
-        name: channelName,
-        type: ChannelType.GuildText,
-        permissionOverwrites: [
-          {
-            id: message.guild.id,
-            deny: [PermissionFlagsBits.ViewChannel],
-          }
-          {
-            id: message.author.id,
-            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
-          }
-          {
-            id: client.user.id,
-            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ManageChannels],
-          }
-        ]
-      });
-
-      // Poruka unutar tiketa
-      const ticketEmbed = new EmbedBuilder()
-        .setColor(0xFF8C00)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Tiket')
-        .setDescription(
-          `- Dobrodošli u vaš tiket, ${message.author}!\n` +
-          `- **Opišite vaš problem ili razlog otvaranja tiketa.**\n` +
-          `- Ubrzo će vam se neko od osoblja pridružiti.\n` +
-          `- Za zatvaranje tiketa ukucajte \`.close\``
-        )
-        .setTimestamp();
-
-      await ticketChannel.send({ content: `${message.author}`, embeds: [ticketEmbed] });
-
-      // Potvrda korisniku
-      const successEmbed = new EmbedBuilder()
-        .setColor(0xFF8C00)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Tiket')
-        .setDescription(`- Uspešno ste otvorili tiket! Možete pristupiti ovde: ${ticketChannel}`);
-
-      return message.reply({ embeds: [successEmbed] });
-    } catch (error) {
-      console.error(error);
-      return message.reply('- Došlo je do greške prilikom kreiranja tiketa.');
-    }
-  }
-});
 
 // SVE KOMANDE
+
 client.on(Events.MessageCreate, async message => {
   if (!message.guild || message.author.bot) return;
-  if (!message.content.startsWith(PREFIX)) return;
 
   const args = message.content.slice(PREFIX.length).trim().split(/\s+/);
   let command = (args.shift() || '').toLowerCase();
+
+  // TICKET KOMANDA IDE OVDE
+  
+    // TICKET KOMANDA
+    if (command === 'ticket') {
+      const channelName = `ticket-${message.author.username}`
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, '-')
+        .slice(0, 90);
+
+      const existingChannel = message.guild.channels.cache.find(
+        channel => channel.topic === `ticket-owner:${message.author.id}`
+      );
+
+      if (existingChannel) {
+        return message.reply(`Već imaš otvoren ticket: ${existingChannel}`);
+      }
+
+      try {
+        const ticketChannel = await message.guild.channels.create({
+          name: channelName,
+          type: ChannelType.GuildText,
+          topic: `ticket-owner:${message.author.id}`,
+          permissionOverwrites: [
+            {
+              id: message.guild.roles.everyone.id,
+              deny: [PermissionFlagsBits.ViewChannel]
+            },
+            {
+              id: message.author.id,
+              allow: [
+                PermissionFlagsBits.ViewChannel,
+                PermissionFlagsBits.SendMessages,
+                PermissionFlagsBits.ReadMessageHistory
+              ]
+            },
+            {
+              id: client.user.id,
+              allow: [
+                PermissionFlagsBits.ViewChannel,
+                PermissionFlagsBits.SendMessages,
+                PermissionFlagsBits.ReadMessageHistory,
+                PermissionFlagsBits.ManageChannels
+              ]
+            }
+          ]
+        });
+
+        const ticketEmbed = new EmbedBuilder()
+          .setColor('#F3994A')
+          .setTitle('🎫 HAOS Client — Ticket')
+          .setDescription(
+            `Dobrodošao/la u svoj ticket, ${message.author}!\n\n` +
+            '• Opiši svoj problem ili razlog otvaranja ticketa.\n' +
+            '• Sačekaj da ti se staff tim javi.'
+          )
+          .setTimestamp();
+
+        await ticketChannel.send({
+          content: `${message.author}`,
+          embeds: [ticketEmbed]
+        });
+
+        return message.reply(`Uspešno si otvorio/la ticket: ${ticketChannel}`);
+      } catch (error) {
+        console.error('Greška pri kreiranju ticketa:', error);
+        return message.reply('❌ Došlo je do greške prilikom kreiranja ticketa.');
+      }
+  }
+  
+});
+
 
   const aliases = {
     h: 'help',
@@ -835,59 +850,6 @@ client.on(Events.MessageCreate, async message => {
     }).catch(() => {});
   }
 });
-
-// AVATAR (.av)
-  if (command === 'av') {
-    const target = message.mentions.users.first() || message.author;
-    const avatarURL = target.displayAvatarURL({ size: 4096, dynamic: true });
-
-    const avEmbed = new EmbedBuilder()
-      .setColor(0xFF8C00)
-      .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Avatar')
-      .setDescription(
-        `- Avatar korisnika: ${target}\n` +
-        `- [Direktan link do slike](${avatarURL})`
-      )
-      .setImage(avatarURL)
-      .setTimestamp();
-
-    return message.reply({ embeds: [avEmbed] });
-  }
-
-  // BANNER (.banner)
-  if (command === 'banner') {
-    const target = message.mentions.users.first() || message.author;
-    
-    // Moramo da fetchujemo korisnika da bismo dobili banner podatke sa Discord-a
-    try {
-      const fetchedUser = await target.fetch();
-      const bannerURL = fetchedUser.displayBannerURL({ size: 4096, dynamic: true });
-
-      if (!bannerURL) {
-        const noBannerEmbed = new EmbedBuilder()
-          .setColor(0xFF0000)
-          .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
-          .setDescription(`- Korisnik ${target} nema postavljen baner.`);
-
-        return message.reply({ embeds: [noBannerEmbed] });
-      }
-
-      const bannerEmbed = new EmbedBuilder()
-        .setColor(0xFF8C00)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Banner')
-        .setDescription(
-          `- Baner korisnika: ${target}\n` +
-          `- [Direktan link do slike](${bannerURL})`
-        )
-        .setImage(bannerURL)
-        .setTimestamp();
-
-      return message.reply({ embeds: [bannerEmbed] });
-    } catch (error) {
-      console.error(error);
-      return message.reply('- Došlo je do greške prilikom učitavanja banera.');
-    }
-  }
 
 // ODGOVOR NA POMINJANJE BOTA
 client.on(Events.MessageCreate, async message => {
