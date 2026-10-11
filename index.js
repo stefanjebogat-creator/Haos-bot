@@ -541,7 +541,7 @@ client.on(Events.MessageCreate, async message => {
     if (!message.member.permissions.has(PermissionFlagsBits.BanMembers)) {
       const noPermEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Nemate potrebne dozvole za korišćenje komande `.ban`.');
       
       return message.reply({ embeds: [noPermEmbed] });
@@ -565,7 +565,7 @@ client.on(Events.MessageCreate, async message => {
     if (!target.bannable) {
       const cantBanEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription(`- Ne mogu banovati korisnika ${target}. Njegova uloga je iznad moje.`);
 
       return message.reply({ embeds: [cantBanEmbed] });
@@ -575,7 +575,7 @@ client.on(Events.MessageCreate, async message => {
       try {
         const dmEmbed = new EmbedBuilder()
           .setColor(0xFF0000)
-          .setTitle('HAOS • Banovanje')
+          .setTitle('\<:649327ban:1558943591534166087> Haos Client — Banovanje')
           .setDescription(
             `- Banovani ste sa servera **${message.guild.name}**.\n` +
             `- **Moderator:** ${message.author.tag}\n` +
@@ -590,7 +590,7 @@ client.on(Events.MessageCreate, async message => {
 
       const successEmbed = new EmbedBuilder()
         .setColor(0xFF8C00)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Ban')
+        .setTitle('<:6728_true:1558944305283080232> Haos Client — Ban')
         .setDescription(
           `- Član **${target.user.tag}** je uspešno banovan.\n` +
           `- **Razlog:** \`${reason}\`\n` +
