@@ -208,40 +208,57 @@ async function playNext(guildId) {
 
 // SVE KOMANDE
 client.on(Events.MessageCreate, async message => {
-  if (message.author.bot) return;
+  if (!message.guild || message.author.bot) return;
+  if (!message.content.startsWith(PREFIX)) return;
 
-  // Komanda .help
-  if (message.content.toLowerCase() === '.help') {
-    const helpEmbed = new EmbedBuilder()
-      .setColor(0xFF8C00)
-      .setTitle('HAOS • Komande')
-      .setDescription(
-        `### 🛡️ Moderacija\n` +
-        `\`\`\`\n` +
-        `.ban @član [razlog]\n` +
-        `.unban ID [razlog]\n` +
-        `.kick @član [razlog]\n` +
-        `.mute @član 10m [razlog]\n` +
-        `.unmute @član\n` +
-        `.warn @član [razlog]\n` +
-        `.warnings @član\n` +
-        `\`\`\`\n` +
-        `### 🎉 Nagradne igre\n` +
-        `\`\`\`\n` +
-        `.giveaway 10m 1 Nagrada\n` +
-        `.endgiveaway ID_poruke\n` +
-        `\`\`\`\n` +
-        `### 🎵 Muzika\n` +
-        `\`\`\`.play naziv pesme ili YouTube link\`\`\`\n` +
-        `\`.skip\` \`.stop\` \`.pause\` \`.resume\` \`.queue\` \`.leave\``
-      )
-      .setTimestamp();
+  const args = message.content.slice(PREFIX.length).trim().split(/\s+/);
+  const command = (args.shift() || '').toLowerCase();
 
-        return message.reply({ embeds: [helpEmbed] });
-  }
+  if (!command) return;
 
-  // BAN
-  if (command === 'ban') {
+  const member = message.member;
+  const target = message.mentions.members.first();
+
+  const hasPermission = permission => {
+    if (member.permissions.has(permission)) return true;
+
+    message.reply({
+      embeds: [
+        embed('Nemaš dozvolu', 'Nemaš potrebnu dozvolu za ovu komandu.')
+      ]
+    }).catch(() => {});
+
+    return false;
+  };
+
+  try {
+    // HELP
+    if (['help', 'pomoc', 'pomoć'].includes(command)) {
+      return message.reply({
+        embeds: [
+          embed(
+            'HAOS • Komande',
+            '**🛡️ Moderacija**\n' +
+            '`.ban @član [razlog]`\n' +
+            '`.unban ID [razlog]`\n' +
+            '`.kick @član [razlog]`\n' +
+            '`.mute @član 10m [razlog]`\n' +
+            '`.unmute @član`\n' +
+            '`.warn @član [razlog]`\n' +
+            '`.warnings @član`\n\n' +
+            '**🎉 Nagradne igre**\n' +
+            '`.giveaway 10m 1 Nagrada`\n' +
+            '`.endgiveaway ID_poruke`\n\n' +
+            '**🎵 Muzika**\n' +
+            '`.play naziv pesme ili YouTube link`\n' +
+            '`.skip` `.stop` `.pause` `.resume` `.queue` `.leave`'
+          )
+        ]
+      });
+    }
+
+    // BAN
+    if (command === 'ban') {
       if (!hasPermission(PermissionFlagsBits.BanMembers)) return;
       if (!target) return message.reply('Upotreba: `.ban @član [razlog]`');
       if (!target.bannable) {
@@ -718,11 +735,11 @@ client.on(Events.MessageCreate, async message => {
 
   if (message.mentions.has(client.user) && !message.mentions.everyone) {
     const embed = new EmbedBuilder()
-      .setColor(0xFF8C00)
-      .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Mention')
+      .setColor(0xFF8C00) // Narandžasta traka sa strane
+      .setTitle('🤖 Haos Client — Mention')
       .setDescription(
-        `- Ćao ${message.author}, ja sam personalizovani **Client** za **Haos** balkanski server.\n` +
-        `- Koristim prefix \`.\` (tačka) ako ti je potrebna pomoć kucaj \`.help\` za više informacija.`
+        `• Ćao ${message.author}, ja sam personalizovani **Client** za **Haos** balkanski server.\n` +
+        `• Koristim prefix \`.\` (tačka) ako ti je potrebna pomoć kucaj \`.help\` za više informacija.`
       );
 
     await message.reply({ embeds: [embed] });
