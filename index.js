@@ -150,7 +150,7 @@ client.on(Events.GuildMemberAdd, async member => {
     .setTitle('NOVI MEMBER')
     .setDescription(
       `<:haos_love:1530984544080232568> Ćao <@${member.id}>, dobrodošao/la na 🌴 ⨯ HAOS\n\n` +
-      `<a:haos_mesec:1530984603479707861> Isprati [Informacije](https://discord.com/channels/1530299782738743306/1530976844956959893) & [obaveštenja](https://discord.com/channels/1530299782738743306/1530977278849180000) o serveru.\n` +
+      `<a:haos_mesec:1530984603479707861> Isprati [Informacije](https://discord.com/channels/1530299782738743306/1530976844956958993) & [obaveštenja](https://discord.com/channels/1530299782738743306/1530977278849188000) o serveru.\n` +
       `<:haos_zvezda:1531040788551700581> Podeli [boost](https://discord.com/channels/1530299782738743306/1530299852632887366) na serveru.\n` +
       `<:haos_majaba:1531052189915676772> Zabavi se u [chat](https://discord.com/channels/1530299782738743306/1530299783603028081)\n\n` +
       `<a:haos_vatra:1531053579039674400> Postani član <@&1530966431347245087> naše zajednice.`
