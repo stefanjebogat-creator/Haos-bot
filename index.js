@@ -644,20 +644,19 @@ client.on(Events.MessageCreate, async message => {
         )
         .setTimestamp();
 
-      return message.reply({ embeds: [successEmbed] });
-    } catch (error) {
+      return message.reply({ embeds: [successEmbed] })  
+   } catch (error) {
       console.error(error);
-      
+
       const errorEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
-        .setDescription(`- Ne mogu skloniti ban. Proverite da li je ID (\`${userId}\`) tačan ili da li je taj korisnik uopšte banovan.`);
+        .setDescription('- Ne mogu da izvršim ban. Proveri dozvole bota i hijerarhiju uloga.');
 
       return message.reply({ embeds: [errorEmbed] });
-      
-        ]
-      });
     }
+  }
+
 
     // HARDKICK
     if (command === 'hardkick') {
