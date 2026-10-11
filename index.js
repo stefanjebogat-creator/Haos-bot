@@ -181,186 +181,66 @@ client.on(Events.GuildBanRemove, ban => {
   log(ban.guild, 'Ban je uklonjen', `Član: ${ban.user.tag}`);
 });
 
-// TICKET SISTEM — PANEL, OTVARANJE I ZATVARANJE
-client.on(Events.InteractionCreate, async interaction => {
-  if (!interaction.isButton() || !interaction.guild) return;
+// TICKET
+  if (command === 'ticket') {
+    const channelName = `ticket-${message.author.username}`.toLowerCase();
 
-  try {
-    if (interaction.customId === 'haos_ticket_create') {
-      const existing = interaction.guild.channels.cache.find(channel =>
-        channel.type === ChannelType.GuildText &&
-        channel.topic === `haos-ticket-owner:${interaction.user.id}`
-      );
+    // Provera da li član već ima otvoren tiket kanal na serveru
+    const existingChannel = message.guild.channels.cache.find(c => c.name === channelName);
+    if (existingChannel) {
+      const alreadyOpenEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription(`- Već imate otvoren tiket kanal: ${existingChannel}`);
 
-      if (existing) {
-        return interaction.reply({
-          content: `Već imaš otvoren ticket: ${existing}`,
-          ephemeral: true
-        });
-      }
+      return message.reply({ embeds: [alreadyOpenEmbed] });
+    }
 
-      const safeName = interaction.user.username
-        .toLowerCase()
-        .replace(/[^a-z0-9-]/g, '-')
-        .replace(/-+/g, '-')
-        .slice(0, 18) || 'member';
-
-      const overwrites = [
-        {
-          id: interaction.guild.roles.everyone.id,
-          deny: [PermissionFlagsBits.ViewChannel]
-        },
-        {
-          id: interaction.user.id,
-          allow: [
-            PermissionFlagsBits.ViewChannel,
-            PermissionFlagsBits.SendMessages,
-            PermissionFlagsBits.ReadMessageHistory,
-            PermissionFlagsBits.AttachFiles,
-            PermissionFlagsBits.EmbedLinks
-          ]
-        },
-        {
-          id: client.user.id,
-          allow: [
-            PermissionFlagsBits.ViewChannel,
-            PermissionFlagsBits.SendMessages,
-            PermissionFlagsBits.ReadMessageHistory,
-            PermissionFlagsBits.ManageChannels
-          ]
-        }
-      ];
-
-      const supportRoleId = process.env.TICKET_SUPPORT_ROLE_ID;
-
-      if (supportRoleId && interaction.guild.roles.cache.has(supportRoleId)) {
-        overwrites.push({
-          id: supportRoleId,
-          allow: [
-            PermissionFlagsBits.ViewChannel,
-            PermissionFlagsBits.SendMessages,
-            PermissionFlagsBits.ReadMessageHistory,
-            PermissionFlagsBits.AttachFiles
-          ]
-        });
-      }
-
-      const channelOptions = {
-        name: `ticket-${safeName}`,
-        type: ChannelType.GuildText,
-        topic: `haos-ticket-owner:${interaction.user.id}`,
-        permissionOverwrites: overwrites,
-        reason: `Ticket otvorio/la ${interaction.user.tag}`
-      };
-
-      const categoryId = process.env.TICKET_CATEGORY_ID;
-      const category = categoryId
-        ? interaction.guild.channels.cache.get(categoryId)
-        : null;
-
-      if (category?.type === ChannelType.GuildCategory) {
-        channelOptions.parent = category.id;
-      }
-
-      const ticketChannel = await interaction.guild.channels.create(channelOptions);
-
-      const closeRow = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId('haos_ticket_close')
-          .setLabel('Zatvori ticket')
-          .setEmoji('🔒')
-          .setStyle(ButtonStyle.Danger)
-      );
-
-      await ticketChannel.send({
-        content: `${interaction.user}${supportRoleId ? ` <@&${supportRoleId}>` : ''}`,
-        embeds: [
-          embed(
-            '🎫 HAOS • Staff Prijave',
-            `Zdravo ${interaction.user}! Napiši detalje svoje prijave. Staff tim će ti odgovoriti ovde.\n\nKada završite razgovor, vlasnik ticketa ili staff može kliknuti na **Zatvori ticket**.`
-          )
+    try {
+      // Kreiranje privatnog kanala za tiket
+      const ticketChannel = await message.guild.channels.create({
+        name: channelName,
+        type: 0, // 0 je GuildText (tekstualni kanal)
+        permissionOverwrites: [
+          {
+            id: message.guild.id, // Svi članovi ne vide kanal po defaultu
+            deny: [PermissionFlagsBits.ViewChannel],
+          },
+          {
+            id: message.author.id, // Korisnik koji je otvorio tiket može da vidi i piše
+            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
+          },
+          {
+            id: client.user.id, // Bot može da upravlja kanalom
+            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ManageChannels],
+          }
         ],
-        components: [closeRow],
-        allowedMentions: {
-          users: [interaction.user.id],
-          roles: supportRoleId ? [supportRoleId] : []
-        }
       });
 
-      log(
-        interaction.guild,
-        'Ticket otvoren',
-        `Korisnik: ${interaction.user.tag}\nKanal: ${ticketChannel}`
-      );
-
-      return interaction.reply({
-        content: `Ticket je otvoren: ${ticketChannel}`,
-        ephemeral: true
-      });
-    }
-
-    if (interaction.customId === 'haos_ticket_close') {
-      const channel = interaction.channel;
-      const ownerMatch = channel?.topic?.match(/^haos-ticket-owner:(\d+)$/);
-
-      if (!ownerMatch) {
-        return interaction.reply({
-          content: 'Ovo nije prepoznat ticket kanal.',
-          ephemeral: true
-        });
-      }
-
-      const ownerId = ownerMatch[1];
-      const supportRoleId = process.env.TICKET_SUPPORT_ROLE_ID;
-      const isOwner = interaction.user.id === ownerId;
-
-      const isStaff = Boolean(
-        interaction.memberPermissions?.has(PermissionFlagsBits.ManageChannels) ||
-        (
-          supportRoleId &&
-          interaction.member.roles?.cache?.has(supportRoleId)
+      // Poruka unutar novootvorenog tiketa
+      const ticketEmbed = new EmbedBuilder()
+        .setColor(0xFF8C00)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Tiket')
+        .setDescription(
+          `- Dobrodošli u vaš tiket, ${message.author}!\n` +
+          `- **Opišite vaš problem ili razlog otvaranja tiketa.**\n` +
+          `- Ubrzo će vam se neko od osoblja pridružiti.\n` +
+          `- Za zatvaranje tiketa ukucajte \`.close\``
         )
-      );
+        .setTimestamp();
 
-      if (!isOwner && !isStaff) {
-        return interaction.reply({
-          content: 'Samo vlasnik ticketa ili staff može da ga zatvori.',
-          ephemeral: true
-        });
-      }
+      await ticketChannel.send({ content: `${message.author}`, embeds: [ticketEmbed] });
 
-      await interaction.reply({
-        embeds: [
-          embed(
-            '🔒 Ticket se zatvara',
-            `Ticket zatvara ${interaction.user}. Kanal će biti obrisan za 5 sekundi.`
-          )
-        ]
-      });
+      // Odgovor korisniku na kanalu gde je kucao komandu
+      const successEmbed = new EmbedBuilder()
+        .setColor(0xFF8C00)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Tiket')
+        .setDescription(`- Uspešno ste otvorili tiket! Možete pristupiti ovde: ${ticketChannel}`);
 
-      log(
-        interaction.guild,
-        'Ticket zatvoren',
-        `Kanal: #${channel.name}\nZatvorio/la: ${interaction.user.tag}`
-      );
-
-      setTimeout(() => {
-        channel.delete(`Ticket zatvorio/la ${interaction.user.tag}`)
-          .catch(console.error);
-      }, 5000);
-    }
-  } catch (error) {
-    console.error('Greška u ticket sistemu:', error);
-
-    const payload = {
-      content: 'Greška u ticket sistemu. Proveri da bot ima dozvolu Manage Channels.',
-      ephemeral: true
-    };
-
-    if (interaction.deferred || interaction.replied) {
-      await interaction.followUp(payload).catch(() => {});
-    } else {
-      await interaction.reply(payload).catch(() => {});
+      return message.reply({ embeds: [successEmbed] });
+    } catch (error) {
+      console.error(error);
+      return message.reply('- Došlo je do greške prilikom kreiranja tiketa.');
     }
   }
 });
@@ -638,7 +518,7 @@ client.on(Events.MessageCreate, async message => {
         .setColor(0xFF8C00)
         .setTitle('<:6728_true:1558944305283080232> Haos Client — Unban')
         .setDescription(
-          `- Uspešno sklonjen ban za korisnika **${user ? user.tag : userId}**.\n` +
+          `- Uspešno uklonjen ban za korisnika **${user ? user.tag : userId}**.\n` +
           `- **Razlog:** \`${reason}\`\n` +
           `- **Moderator:** ${message.author}`
         )
