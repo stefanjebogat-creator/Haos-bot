@@ -188,6 +188,34 @@ client.on(Events.MessageCreate, async message => {
   const args = message.content.slice(PREFIX.length).trim().split(/\s+/);
   let command = (args.shift() || '').toLowerCase();
 
+  // LOGOVANJE KORIŠĆENIH KOMANDI
+  const logChannel = message.guild.channels.cache.get(
+    COMMAND_LOG_CHANNEL_ID
+  );
+
+  if (logChannel) {
+    const logEmbed = new EmbedBuilder()
+      .setColor('#3498DB')
+      .setTitle('📋 Korišćena komanda')
+      .addFields(
+        {
+          name: '👤 Korisnik',
+          value: `${message.author.tag} (${message.author.id})`
+        },
+        {
+          name: '⚙️ Komanda',
+          value: `\`${message.content.slice(0, 1000)}\``
+        },
+        {
+          name: '📍 Kanal',
+          value: `${message.channel}`
+        }
+      )
+      .setTimestamp();
+
+    logChannel.send({ embeds: [logEmbed] }).catch(console.error);
+  }
+
  // AVATAR (.av / .avatar)
   if (['av', 'avatar'].includes(command)) {
     const member = message.mentions.users.first();
