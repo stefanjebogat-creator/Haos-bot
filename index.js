@@ -182,7 +182,7 @@ client.on(Events.GuildBanRemove, ban => {
 });
 
         return message.reply(`Uspešno si otvorio/la ticket: ${ticketChannel}`);
-      } catch (error) {
+        catch (error) {
         console.error('Greška pri kreiranju ticketa:', error);
         return message.reply('❌ Došlo je do greške prilikom kreiranja ticketa.');
       }
