@@ -598,13 +598,12 @@ client.on(Events.MessageCreate, async message => {
         )
         .setTimestamp();
 
-      return message.reply({ embeds: [successEmbed] });
+    return message.reply({ embeds: [successEmbed] });
     } catch (error) {
       console.error(error);
       return message.reply('- Došlo je do greške prilikom banovanja korisnika.');
-      
-      });
     }
+  }
 
     // UNBAN — radi i za hardban
     if (command === 'unban') {
