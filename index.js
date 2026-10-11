@@ -672,7 +672,7 @@ client.on(Events.MessageCreate, async message => {
     if (!message.member.permissions.has(PermissionFlagsBits.BanMembers)) {
       const noPermEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Nemate potrebne dozvole za korišćenje komande `.unban`.');
       
       return message.reply({ embeds: [noPermEmbed] });
@@ -698,7 +698,7 @@ client.on(Events.MessageCreate, async message => {
 
       const successEmbed = new EmbedBuilder()
         .setColor(0xFF8C00)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Unban')
+        .setTitle('<:6728_true:1558944305283080232> Haos Client — Unban')
         .setDescription(
           `- Uspešno sklonjen ban za korisnika **${user ? user.tag : userId}**.\n` +
           `- **Razlog:** \`${reason}\`\n` +
@@ -712,7 +712,7 @@ client.on(Events.MessageCreate, async message => {
       
       const errorEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription(`- Ne mogu skloniti ban. Proverite da li je ID (\`${userId}\`) tačan ili da li je taj korisnik uopšte banovan.`);
 
       return message.reply({ embeds: [errorEmbed] });
