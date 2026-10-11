@@ -1,9 +1,14 @@
-
+\
 require('dotenv').config();
 
 const fs = require('fs');
 const {
-  Client, GatewayIntentBits, Events, EmbedBuilder, PermissionFlagsBits
+  Client,
+  GatewayIntentBits,
+  Events,
+  EmbedBuilder,
+  PermissionFlagsBits,
+  ActivityType
 } = require('discord.js');
 
 const PREFIX = '.';
@@ -108,13 +113,30 @@ async function confirmModeration(message, user, title, description) {
   );
 }
 
-// BOT ONLINE
+// STATUS BOTA: Watching /haos BROJ members
+function updateBotStatus(guild) {
+  if (!guild || !client.user) return;
+
+  client.user.setPresence({
+    activities: [{
+      name: `/haos ${guild.memberCount.toLocaleString('en-US')} members`,
+      type: ActivityType.Watching
+    }],
+    status: 'online'
+  });
+}
+
 client.once(Events.ClientReady, bot => {
   console.log(`Bot je online: ${bot.user.tag}`);
+
+  const guild = bot.guilds.cache.first();
+  if (guild) updateBotStatus(guild);
 });
 
-// WELCOME — NOVI DIZAJN
+// WELCOME — HAOS
 client.on(Events.GuildMemberAdd, async member => {
+  updateBotStatus(member.guild);
+
   const channel = member.guild.channels.cache.get(
     process.env.WELCOME_CHANNEL_ID
   );
@@ -145,6 +167,7 @@ client.on(Events.GuildMemberAdd, async member => {
 
 // ČLAN NAPUŠTA SERVER
 client.on(Events.GuildMemberRemove, member => {
+  updateBotStatus(member.guild);
   log(member.guild, 'Član je napustio server', `Član: ${member.user.tag}`);
 });
 
@@ -158,7 +181,7 @@ client.on(Events.GuildBanRemove, ban => {
   log(ban.guild, 'Ban je uklonjen', `Član: ${ban.user.tag}`);
 });
 
-// SVE KOMANDE
+// KOMANDE
 client.on(Events.MessageCreate, async message => {
   if (!message.guild || message.author.bot) return;
   if (!message.content.startsWith(PREFIX)) return;
