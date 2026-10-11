@@ -181,92 +181,87 @@ client.on(Events.GuildBanRemove, ban => {
   log(ban.guild, 'Ban je uklonjen', `Član: ${ban.user.tag}`);
 });
 
-        return message.reply(`Uspešno si otvorio/la ticket: ${ticketChannel}`);
-        catch (error) {
-        console.error('Greška pri kreiranju ticketa:', error);
-        return message.reply('❌ Došlo je do greške prilikom kreiranja ticketa.');
-      }
-    }
-
 // SVE KOMANDE
-
 client.on(Events.MessageCreate, async message => {
   if (!message.guild || message.author.bot) return;
+  if (!message.content.startsWith(PREFIX)) return;
 
   const args = message.content.slice(PREFIX.length).trim().split(/\s+/);
   let command = (args.shift() || '').toLowerCase();
 
-  // TICKET KOMANDA IDE OVDE
-  
-    // TICKET KOMANDA
-    if (command === 'ticket') {
-      const channelName = `ticket-${message.author.username}`
-        .toLowerCase()
-        .replace(/[^a-z0-9-]/g, '-')
-        .slice(0, 90);
+  // TICKET KOMANDA
+  if (command === 'ticket') {
+    const channelName = `ticket-${message.author.username}`
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, '-')
+      .slice(0, 90);
 
-      const existingChannel = message.guild.channels.cache.find(
-        channel => channel.topic === `ticket-owner:${message.author.id}`
+    const existingChannel = message.guild.channels.cache.find(
+      channel => channel.topic === `ticket-owner:${message.author.id}`
+    );
+
+    if (existingChannel) {
+      return message.reply(`Već imaš otvoren ticket: ${existingChannel}`);
+    }
+
+    try {
+      const ticketChannel = await message.guild.channels.create({
+        name: channelName,
+        type: ChannelType.GuildText,
+        topic: `ticket-owner:${message.author.id}`,
+        permissionOverwrites: [
+          {
+            id: message.guild.roles.everyone.id,
+            deny: [PermissionFlagsBits.ViewChannel]
+          },
+          {
+            id: message.author.id,
+            allow: [
+              PermissionFlagsBits.ViewChannel,
+              PermissionFlagsBits.SendMessages,
+              PermissionFlagsBits.ReadMessageHistory
+            ]
+          },
+          {
+            id: client.user.id,
+            allow: [
+              PermissionFlagsBits.ViewChannel,
+              PermissionFlagsBits.SendMessages,
+              PermissionFlagsBits.ReadMessageHistory,
+              PermissionFlagsBits.ManageChannels
+            ]
+          }
+        ]
+      });
+
+      const ticketEmbed = new EmbedBuilder()
+        .setColor('#F3994A')
+        .setTitle('🎫 HAOS Client — Ticket')
+        .setDescription(
+          `Dobrodošao/la u svoj ticket, ${message.author}!\n\n` +
+          '• Opiši svoj problem ili razlog otvaranja ticketa.\n' +
+          '• Sačekaj da ti se staff tim javi.'
+        )
+        .setTimestamp();
+
+      await ticketChannel.send({
+        content: `${message.author}`,
+        embeds: [ticketEmbed],
+        allowedMentions: { users: [message.author.id] }
+      });
+
+      log(
+        message.guild,
+        'Ticket otvoren',
+        `Član: ${message.author.tag}\nKanal: ${ticketChannel}`
       );
 
-      if (existingChannel) {
-        return message.reply(`Već imaš otvoren ticket: ${existingChannel}`);
-      }
-
-      try {
-        const ticketChannel = await message.guild.channels.create({
-          name: channelName,
-          type: ChannelType.GuildText,
-          topic: `ticket-owner:${message.author.id}`,
-          permissionOverwrites: [
-            {
-              id: message.guild.roles.everyone.id,
-              deny: [PermissionFlagsBits.ViewChannel]
-            },
-            {
-              id: message.author.id,
-              allow: [
-                PermissionFlagsBits.ViewChannel,
-                PermissionFlagsBits.SendMessages,
-                PermissionFlagsBits.ReadMessageHistory
-              ]
-            },
-            {
-              id: client.user.id,
-              allow: [
-                PermissionFlagsBits.ViewChannel,
-                PermissionFlagsBits.SendMessages,
-                PermissionFlagsBits.ReadMessageHistory,
-                PermissionFlagsBits.ManageChannels
-              ]
-            }
-          ]
-        });
-
-        const ticketEmbed = new EmbedBuilder()
-          .setColor('#F3994A')
-          .setTitle('🎫 HAOS Client — Ticket')
-          .setDescription(
-            `Dobrodošao/la u svoj ticket, ${message.author}!\n\n` +
-            '• Opiši svoj problem ili razlog otvaranja ticketa.\n' +
-            '• Sačekaj da ti se staff tim javi.'
-          )
-          .setTimestamp();
-
-        await ticketChannel.send({
-          content: `${message.author}`,
-          embeds: [ticketEmbed]
-        });
-
-        return message.reply(`Uspešno si otvorio/la ticket: ${ticketChannel}`);
-      } catch (error) {
-        console.error('Greška pri kreiranju ticketa:', error);
-        return message.reply('❌ Došlo je do greške prilikom kreiranja ticketa.');
-      }
+      return message.reply(`Uspešno si otvorio/la ticket: ${ticketChannel}`);
+    } catch (error) {
+      console.error('Greška pri kreiranju ticketa:', error);
+      return message.reply('❌ Došlo je do greške prilikom kreiranja ticketa.');
+    }
   }
-  
-});
-
 
   const aliases = {
     h: 'help',
@@ -306,7 +301,7 @@ client.on(Events.MessageCreate, async message => {
   };
 
   try {
-    // TICKET PANEL — STAFF PRIJAVE
+    // TICKET PANEL
     if (command === 'ticketsetup') {
       if (!hasPermission(PermissionFlagsBits.ManageGuild)) return;
 
@@ -376,7 +371,6 @@ client.on(Events.MessageCreate, async message => {
       }
 
       const why = reason(args);
-
       await dm(target.user, 'HAOS • HARDBAN',
         `**Moderator:** ${message.author.tag}\n**Razlog:** ${why}`);
 
@@ -430,128 +424,132 @@ client.on(Events.MessageCreate, async message => {
       });
     }
 
-   
-   // BAN KOMANDA
-  if (command === 'ban') {
-    if (!message.member.permissions.has(PermissionFlagsBits.BanMembers)) {
-      const noPermEmbed = new EmbedBuilder()
-        .setColor(0xFF0000)
-        .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
-        .setDescription('- Nemate potrebne dozvole za korišćenje komande `.ban`.');
-      
-      return message.reply({ embeds: [noPermEmbed] });
-    }
-
-    const target = message.mentions.members.first();
-    const reason = args.slice(1).join(' ') || 'Nije naveden razlog';
-
-    if (!target) {
-      const noTargetEmbed = new EmbedBuilder()
-        .setColor(0xFF8C00)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Ban')
-        .setDescription(
-          `- Pogrešna upotreba komande!\n` +
-          `- Upotreba: \`.ban\` \`@član\` \`[razlog]\``
-        );
-
-      return message.reply({ embeds: [noTargetEmbed] });
-    }
-
-    if (!target.bannable) {
-      const cantBanEmbed = new EmbedBuilder()
-        .setColor(0xFF0000)
-        .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
-        .setDescription(`- Ne mogu banovati korisnika ${target}. Njegova uloga je iznad moje.`);
-
-      return message.reply({ embeds: [cantBanEmbed] });
-    }
-
-    try {
-      try {
-        const dmEmbed = new EmbedBuilder()
+    // BAN
+    if (command === 'ban') {
+      if (!message.member.permissions.has(PermissionFlagsBits.BanMembers)) {
+        const noPermEmbed = new EmbedBuilder()
           .setColor(0xFF0000)
-          .setTitle('\<:649327ban:1558943591534166087> Haos Client — Banovanje')
-          .setDescription(
-            `- Banovani ste sa servera **${message.guild.name}**.\n` +
-            `- **Moderator:** ${message.author.tag}\n` +
-            `- **Razlog:** \`${reason}\``
-          );
-        await target.send({ embeds: [dmEmbed] });
-      } catch (err) {
-        // Ignoriše se ako korisnik ima ugašen DM
+          .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
+          .setDescription('- Nemate potrebne dozvole za korišćenje komande `.ban`.');
+
+        return message.reply({ embeds: [noPermEmbed] });
       }
 
-      await target.ban({ reason: `${reason} | Moderator: ${message.author.tag}` });
+      const banTarget = message.mentions.members.first();
+      const banReason = args.slice(1).join(' ') || 'Nije naveden razlog';
 
-      const successEmbed = new EmbedBuilder()
-        .setColor(0xFF8C00)
-        .setTitle('<:6728_true:1558944305283080232> Haos Client — Ban')
-        .setDescription(
-          `- Član **${target.user.tag}** je uspešno banovan.\n` +
-          `- **Razlog:** \`${reason}\`\n` +
-          `- **Moderator:** ${message.author}`
-        )
-        .setTimestamp();
+      if (!banTarget) {
+        const noTargetEmbed = new EmbedBuilder()
+          .setColor(0xFF8C00)
+          .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Ban')
+          .setDescription(
+            `- Pogrešna upotreba komande!\n` +
+            `- Upotreba: \`.ban\` \`@član\` \`[razlog]\``
+          );
 
-    return message.reply({ embeds: [successEmbed] });
-    } catch (error) {
-      console.error(error);
-      return message.reply('- Došlo je do greške prilikom banovanja korisnika.');
+        return message.reply({ embeds: [noTargetEmbed] });
+      }
+
+      if (!banTarget.bannable) {
+        const cantBanEmbed = new EmbedBuilder()
+          .setColor(0xFF0000)
+          .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
+          .setDescription(`- Ne mogu banovati korisnika ${banTarget}. Njegova uloga je iznad moje.`);
+
+        return message.reply({ embeds: [cantBanEmbed] });
+      }
+
+      try {
+        try {
+          const dmEmbed = new EmbedBuilder()
+            .setColor(0xFF0000)
+            .setTitle('<:649327ban:1558943591534166087> Haos Client — Banovanje')
+            .setDescription(
+              `- Banovani ste sa servera **${message.guild.name}**.\n` +
+              `- **Moderator:** ${message.author.tag}\n` +
+              `- **Razlog:** \`${banReason}\``
+            );
+
+          await banTarget.send({ embeds: [dmEmbed] });
+        } catch (err) {
+          // Korisnik je možda isključio privatne poruke.
+        }
+
+        await banTarget.ban({
+          reason: `${banReason} | Moderator: ${message.author.tag}`
+        });
+
+        const successEmbed = new EmbedBuilder()
+          .setColor(0xFF8C00)
+          .setTitle('<:6728_true:1558944305283080232> Haos Client — Ban')
+          .setDescription(
+            `- Član **${banTarget.user.tag}** je uspešno banovan.\n` +
+            `- **Razlog:** \`${banReason}\`\n` +
+            `- **Moderator:** ${message.author}`
+          )
+          .setTimestamp();
+
+        return message.reply({ embeds: [successEmbed] });
+      } catch (error) {
+        console.error(error);
+        return message.reply('- Došlo je do greške prilikom banovanja korisnika.');
+      }
     }
-  }
 
-// UNBAN
-  if (command === 'unban') {
-    if (!message.member.permissions.has(PermissionFlagsBits.BanMembers)) {
-      const noPermEmbed = new EmbedBuilder()
-        .setColor(0xFF0000)
-        .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
-        .setDescription('- Nemate potrebne dozvole za korišćenje komande `.unban`.');
-      
-      return message.reply({ embeds: [noPermEmbed] });
-    }
+    // UNBAN
+    if (command === 'unban') {
+      if (!message.member.permissions.has(PermissionFlagsBits.BanMembers)) {
+        const noPermEmbed = new EmbedBuilder()
+          .setColor(0xFF0000)
+          .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
+          .setDescription('- Nemate potrebne dozvole za korišćenje komande `.unban`.');
 
-    const userId = args[0];
-    const reason = args.slice(1).join(' ') || 'Nije naveden razlog';
+        return message.reply({ embeds: [noPermEmbed] });
+      }
 
-    if (!userId) {
-      const noIdEmbed = new EmbedBuilder()
-        .setColor(0xFF8C00)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Unban')
-        .setDescription(
-          `- Pogrešna upotreba komande!\n` +
-          `- Upotreba: \`.unban\` \`[ID_korisnika]\` \`[razlog]\``
+      const userId = args[0];
+      const unbanReason = args.slice(1).join(' ') || 'Nije naveden razlog';
+
+      if (!userId) {
+        const noIdEmbed = new EmbedBuilder()
+          .setColor(0xFF8C00)
+          .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Unban')
+          .setDescription(
+            `- Pogrešna upotreba komande!\n` +
+            `- Upotreba: \`.unban\` \`[ID_korisnika]\` \`[razlog]\``
+          );
+
+        return message.reply({ embeds: [noIdEmbed] });
+      }
+
+      try {
+        const user = await message.guild.members.unban(
+          userId,
+          `${unbanReason} | Moderator: ${message.author.tag}`
         );
 
-      return message.reply({ embeds: [noIdEmbed] });
+        const successEmbed = new EmbedBuilder()
+          .setColor(0xFF8C00)
+          .setTitle('<:6728_true:1558944305283080232> Haos Client — Unban')
+          .setDescription(
+            `- Uspešno uklonjen ban za korisnika **${user ? user.tag : userId}**.\n` +
+            `- **Razlog:** \`${unbanReason}\`\n` +
+            `- **Moderator:** ${message.author}`
+          )
+          .setTimestamp();
+
+        return message.reply({ embeds: [successEmbed] });
+      } catch (error) {
+        console.error(error);
+
+        const errorEmbed = new EmbedBuilder()
+          .setColor(0xFF0000)
+          .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
+          .setDescription('- Ne mogu da izvršim unban. Proveri ID i dozvole bota.');
+
+        return message.reply({ embeds: [errorEmbed] });
+      }
     }
-
-    try {
-      const user = await message.guild.members.unban(userId, `${reason} | Moderator: ${message.author.tag}`);
-
-      const successEmbed = new EmbedBuilder()
-        .setColor(0xFF8C00)
-        .setTitle('<:6728_true:1558944305283080232> Haos Client — Unban')
-        .setDescription(
-          `- Uspešno uklonjen ban za korisnika **${user ? user.tag : userId}**.\n` +
-          `- **Razlog:** \`${reason}\`\n` +
-          `- **Moderator:** ${message.author}`
-        )
-        .setTimestamp();
-
-      return message.reply({ embeds: [successEmbed] })  
-   } catch (error) {
-      console.error(error);
-
-      const errorEmbed = new EmbedBuilder()
-        .setColor(0xFF0000)
-        .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
-        .setDescription('- Ne mogu da izvršim ban. Proveri dozvole bota i hijerarhiju uloga.');
-
-      return message.reply({ embeds: [errorEmbed] });
-    }
-  }
-
 
     // HARDKICK
     if (command === 'hardkick') {
@@ -601,7 +599,7 @@ client.on(Events.MessageCreate, async message => {
       });
     }
 
-    // HARDMUTE — 28 DANA
+    // HARDMUTE
     if (command === 'hardmute') {
       if (!hasPermission(PermissionFlagsBits.ModerateMembers)) return;
       if (!target) return message.reply('Upotreba: `.hardmute @član [razlog]` ili `.hm @član [razlog]`');
@@ -610,11 +608,17 @@ client.on(Events.MessageCreate, async message => {
       }
 
       const why = reason(args);
-      await target.timeout(28 * 24 * 60 * 60 * 1000,
-        `${why} | Hardmute | Moderator: ${message.author.tag}`);
+      await target.timeout(
+        28 * 24 * 60 * 60 * 1000,
+        `${why} | Hardmute | Moderator: ${message.author.tag}`
+      );
 
-      return confirmModeration(message, target.user, 'HARDMUTE • 28 dana',
-        `${why}\nTrajanje: 28 dana`);
+      return confirmModeration(
+        message,
+        target.user,
+        'HARDMUTE • 28 dana',
+        `${why}\nTrajanje: 28 dana`
+      );
     }
 
     // MUTE
@@ -633,8 +637,12 @@ client.on(Events.MessageCreate, async message => {
       const why = reason(args);
       await target.timeout(ms, `${why} | Moderator: ${message.author.tag}`);
 
-      return confirmModeration(message, target.user, 'Utišavanje',
-        `${why}\nTrajanje: ${text}`);
+      return confirmModeration(
+        message,
+        target.user,
+        'Utišavanje',
+        `${why}\nTrajanje: ${text}`
+      );
     }
 
     // UNMUTE
@@ -647,8 +655,12 @@ client.on(Events.MessageCreate, async message => {
 
       await target.timeout(null, `Uklonio/la ${message.author.tag}`);
 
-      return confirmModeration(message, target.user, 'Uklanjanje utišavanja',
-        'Moderator je uklonio/la utišavanje.');
+      return confirmModeration(
+        message,
+        target.user,
+        'Uklanjanje utišavanja',
+        'Moderator je uklonio/la utišavanje.'
+      );
     }
 
     // WARN
@@ -668,14 +680,19 @@ client.on(Events.MessageCreate, async message => {
 
       saveWarnings(data);
 
-      const sent = await dm(target.user, 'HAOS • Upozorenje',
-        `Server: **${message.guild.name}**\n**Moderator:** ${message.author.tag}\n**Razlog:** ${why}`);
+      const sent = await dm(
+        target.user,
+        'HAOS • Upozorenje',
+        `Server: **${message.guild.name}**\n**Moderator:** ${message.author.tag}\n**Razlog:** ${why}`
+      );
 
       return message.reply({
         embeds: [
-          embed('Upozorenje dodato',
+          embed(
+            'Upozorenje dodato',
             `**Član:** ${target.user.tag}\n**Razlog:** ${why}\n**Ukupno upozorenja:** ${data[target.id].length}\n` +
-            (sent ? '📩 DM je poslat.' : '⚠️ DM nije mogao biti poslat.'))
+            (sent ? '📩 DM je poslat.' : '⚠️ DM nije mogao biti poslat.')
+          )
         ]
       });
     }
@@ -877,4 +894,3 @@ if (!process.env.DISCORD_TOKEN) {
 client.login(process.env.DISCORD_TOKEN).catch(error => {
   console.error('Bot nije uspeo da se pokrene:', error);
 });
-client.login(process.env.DISCORD_TOKEN);
