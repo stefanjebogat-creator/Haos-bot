@@ -730,5 +730,21 @@ if (!process.env.DISCORD_TOKEN) {
   console.error('Nedostaje DISCORD_TOKEN u .env fajlu.');
   process.exit(1);
 }
+client.on(Events.MessageCreate, async message => {
+  // Ignoriši poruke koje šalju drugi botovi
+  if (message.author.bot) return;
 
+  // Proveri da li je poruka tačno tag/pominjanje bota
+  if (message.mentions.has(client.user) && !message.mentions.everyone) {
+    const embed = new EmbedBuilder()
+      .setColor(0xFF8C00) // Narandžasta boja sa strane (kao na slici)
+      .setTitle('🤖 Haos Client — Mention')
+      .setDescription(
+        `• Ćao ${message.author}, ja sam personalizovani **Client** za **Haos** balkanski server.\n` +
+        `• Koristim prefix \`.\` (tačka) ako ti je potrebna pomoć kucaj \`.help\` za više informacija.`
+      );
+
+    await message.reply({ embeds: [embed] });
+  }
+});
 client.login(process.env.DISCORD_TOKEN);
