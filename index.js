@@ -213,7 +213,7 @@ client.on(Events.MessageCreate, async message => {
   // Komanda .help
   if (message.content.toLowerCase() === '.help') {
     const helpEmbed = new EmbedBuilder()
-      .setColor(0xFF8C00) // Narandžasta traka
+      .setColor(0xFF8C00)
       .setTitle('HAOS • Komande')
       .setDescription(
         `### 🛡️ Moderacija\n` +
@@ -237,7 +237,7 @@ client.on(Events.MessageCreate, async message => {
       )
       .setTimestamp();
 
-    await message.reply({ embeds: [helpEmbed] });
+    return message.reply({ embeds: [helpEmbed] });
   }
 });
     }
