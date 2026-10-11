@@ -510,8 +510,9 @@ client.on(Events.MessageCreate, async message => {
       '**Utility & Media:**\n' +
       '`.ticket` - Otvaranje privatnog tiketa\n' +
       '`.av` - Prikaz avatara korisnika\n' +
-      '`.banner` - Prikaz banera korisnika' +
-    });
+      '`.banner` - Prikaz banera korisnika',
+      message
+    );
   }
 
     // HARDBAN
