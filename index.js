@@ -435,6 +435,60 @@ client.on(Events.MessageCreate, async message => {
     return message.reply({ embeds: [embed] });
   }
 
+  // OPOMENA
+  if (command === 'opomena') {
+    if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
+      return message.reply('❌ Nemaš dozvolu za izdavanje opomena.');
+    }
+
+    const target = message.mentions.members.first();
+
+    if (!target) {
+      return message.reply('❌ Upotreba: `.opomena @član razlog`');
+    }
+
+    if (target.id === message.author.id) {
+      return message.reply('❌ Ne možeš samog sebe da opomeneš.');
+    }
+
+    if (target.user.bot) {
+      return message.reply('❌ Ne možeš da opomeneš bota.');
+    }
+
+    const reason = args.slice(1).join(' ') || 'Nije naveden razlog';
+
+    const embed = new EmbedBuilder()
+      .setColor('#F1C40F')
+      .setTitle('⚠️ OPOMENA')
+      .addFields(
+        {
+          name: '👤 Član',
+          value: `${target.user.tag} (${target.id})`
+        },
+        {
+          name: '🛡️ Moderator',
+          value: `${message.author.tag}`
+        },
+        {
+          name: '📝 Razlog',
+          value: reason
+        }
+      )
+      .setTimestamp()
+      .setFooter({ text: 'HAOS Client • Moderacija' });
+
+    try {
+      await target.send({ embeds: [embed] }).catch(() => null);
+
+      await message.channel.send({ embeds: [embed] });
+
+      return message.reply(`✅ Član ${target} je opomenut.`);
+    } catch (error) {
+      console.error('Greška pri izdavanju opomene:', error);
+      return message.reply('❌ Došlo je do greške pri izdavanju opomene.');
+    }
+  }
+
   const aliases = {
     h: 'help',
     b: 'ban',
