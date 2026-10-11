@@ -848,7 +848,7 @@ client.on(Events.MessageCreate, async message => {
         .setTimestamp();
 
      return message.reply({ embeds: [bannerEmbed] });
-      } catch (error) {
+     catch (error) {
         console.error(error);
         return message.reply('- Došlo je do greške prilikom učitavanja banera.');
       }
