@@ -182,51 +182,36 @@ client.on(Events.GuildBanRemove, ban => {
 
 // KOMANDE
 client.on(Events.MessageCreate, async message => {
-  if (!message.guild || message.author.bot) return;
-  if (!message.content.startsWith(PREFIX)) return;
+  if (message.author.bot) return;
 
-  const args = message.content.slice(PREFIX.length).trim().split(/\s+/);
-  const command = (args.shift() || '').toLowerCase();
+  // Odgovor na .help komandu
+  if (message.content.toLowerCase() === '.help') {
+    const helpEmbed = new EmbedBuilder()
+      .setColor(0xFF8C00)
+      .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Komande')
+      .setDescription(
+        `### 🛡️ Moderacija\n` +
+        `- \`.ban\` \`@član\` \`[razlog]\` — Izbacuje člana sa servera trajno\n` +
+        `- \`.unban\` \`ID\` \`[razlog]\` — Skida ban sa naloga\n` +
+        `- \`.kick\` \`@član\` \`[razlog]\` — Izbacuje člana sa servera\n` +
+        `- \`.mute\` \`@član\` \`10m\` \`[razlog]\` — Utišava člana na određeno vreme\n` +
+        `- \`.unmute\` \`@član\` — Skida utišavanje sa člana\n` +
+        `- \`.warn\` \`@član\` \`[razlog]\` — Daje opomenu članu\n` +
+        `- \`.warnings\` \`@član\` — Prikazuje sve opomene člana\n\n` +
 
-  if (!command) return;
+        `### 🎉 Nagradne igre\n` +
+        `- \`.giveaway\` \`10m\` \`1\` \`Nagrada\` — Pokreće nagradnu igru\n` +
+        `- \`.endgiveaway\` \`ID_poruke\` — Završava nagradnu igru odmah\n\n` +
 
-  const member = message.member;
-  const target = message.mentions.members.first();
+        `### 🎵 Muzika\n` +
+        `- \`.play\` \`naziv ili link\` — Pušta pesmu u glasovnom kanalu\n` +
+        `- \`.skip\` \`.stop\` \`.pause\` \`.resume\` \`.queue\` \`.leave\``
+      )
+      .setTimestamp();
 
-  const hasPermission = permission => {
-    if (member.permissions.has(permission)) return true;
-
-    message.reply({
-      embeds: [
-        embed('Nemaš dozvolu', 'Nemaš potrebnu dozvolu za ovu komandu.')
-      ]
-    }).catch(() => {});
-
-    return false;
-  };
-
-  try {
-    // HELP
-    if (['help', 'pomoc', 'pomoć'].includes(command)) {
-      return message.reply({
-        embeds: [
-          embed(
-            'HAOS • Komande',
-            '**🛡️ Moderacija**\n' +
-            '`.ban @član [razlog]`\n' +
-            '`.unban ID [razlog]`\n' +
-            '`.kick @član [razlog]`\n' +
-            '`.mute @član 10m [razlog]`\n' +
-            '`.unmute @član`\n' +
-            '`.warn @član [razlog]`\n' +
-            '`.warnings @član`\n\n' +
-            '**🎉 Nagradne igre**\n' +
-            '`.giveaway 10m 1 Nagrada` — pokreni nagradnu igru\n' +
-            '`.endgiveaway ID_poruke` — završi je ranije\n' +
-            '`.reroll ID_poruke` — izvuci novog pobednika'
-          )
-        ]
-      });
+    await message.reply({ embeds: [helpEmbed] });
+  }
+});
     }
 
     // BAN
