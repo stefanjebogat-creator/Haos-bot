@@ -212,7 +212,7 @@ client.on(Events.MessageCreate, async message => {
     await message.reply({ embeds: [helpEmbed] });
   }
 });
-    }
+    
 
     // BAN
     if (command === 'ban') {
