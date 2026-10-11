@@ -773,7 +773,6 @@ client.on(Events.MessageCreate, async message => {
   }
 });
 
-
     // ODGOVOR NA POMINJANJE BOTA
     if (message.mentions.has(client.user) && !message.mentions.everyone) {
       const mentionEmbed = new EmbedBuilder()
@@ -785,7 +784,8 @@ client.on(Events.MessageCreate, async message => {
         );
 
       await message.reply({ embeds: [mentionEmbed] }).catch(() => {});
-    }
+    
+   }
 
 });
 
