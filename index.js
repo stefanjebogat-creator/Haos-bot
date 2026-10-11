@@ -1,3 +1,4 @@
+
 require('dotenv').config();
 
 const fs = require('fs');
@@ -112,7 +113,7 @@ async function confirmModeration(message, user, title, description) {
   );
 }
 
-// STATUS BOTA: Watching /haos BROJ members
+// STATUS BOTA — TRENUTAN BROJ ČLANOVA
 function updateBotStatus(guild) {
   if (!guild || !client.user) return;
 
@@ -132,7 +133,7 @@ client.once(Events.ClientReady, bot => {
   if (guild) updateBotStatus(guild);
 });
 
-// WELCOME — HAOS
+// WELCOME PORUKA
 client.on(Events.GuildMemberAdd, async member => {
   updateBotStatus(member.guild);
 
@@ -164,63 +165,183 @@ client.on(Events.GuildMemberAdd, async member => {
   }).catch(console.error);
 });
 
-// ČLAN NAPUŠTA SERVER
 client.on(Events.GuildMemberRemove, member => {
   updateBotStatus(member.guild);
   log(member.guild, 'Član je napustio server', `Član: ${member.user.tag}`);
 });
 
-// BAN LOG
 client.on(Events.GuildBanAdd, ban => {
   log(ban.guild, 'Član je banovan', `Član: ${ban.user.tag}`);
 });
 
-// UNBAN LOG
 client.on(Events.GuildBanRemove, ban => {
   log(ban.guild, 'Ban je uklonjen', `Član: ${ban.user.tag}`);
 });
 
-// KOMANDE
+// SVE KOMANDE
 client.on(Events.MessageCreate, async message => {
-  if (message.author.bot) return;
+  if (!message.guild || message.author.bot) return;
+  if (!message.content.startsWith(PREFIX)) return;
 
+  const args = message.content.slice(PREFIX.length).trim().split(/\s+/);
+  let command = (args.shift() || '').toLowerCase();
 
- // Odgovor na .help komandu
-  if (message.content.toLowerCase() === '.help') {
-    const helpEmbed = new EmbedBuilder()
-      .setColor(0xFF8C00)
-      .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Komande')
-      .setDescription(
-        `### 🛡️ Moderacija\n` +
-        `- \`.ban\` \`@član\` \`[razlog]\` — Izbacuje člana sa servera trajno\n` +
-        `- \`.unban\` \`ID\` \`[razlog]\` — Skida ban sa naloga\n` +
-        `- \`.kick\` \`@član\` \`[razlog]\` — Izbacuje člana sa servera\n` +
-        `- \`.mute\` \`@član\` \`10m\` \`[razlog]\` — Utišava člana na određeno vreme\n` +
-        `- \`.unmute\` \`@član\` — Skida utišavanje sa člana\n` +
-        `- \`.warn\` \`@član\` \`[razlog]\` — Daje opomenu članu\n` +
-        `- \`.warnings\` \`@član\` — Prikazuje sve opomene člana\n\n` +
+  const aliases = {
+    h: 'help',
+    b: 'ban',
+    ub: 'unban',
+    k: 'kick',
+    m: 'mute',
+    um: 'unmute',
+    w: 'warn',
+    ws: 'warnings',
+    gw: 'giveaway',
+    egw: 'endgiveaway',
+    rr: 'reroll',
+    hb: 'hardban',
+    hm: 'hardmute',
+    hk: 'hardkick',
+    sb: 'softban'
+  };
 
-        `### 🎉 Nagradne igre\n` +
-        `- \`.giveaway\` \`10m\` \`1\` \`Nagrada\` — Pokreće nagradnu igru\n` +
-        `- \`.endgiveaway\` \`ID_poruke\` — Završava nagradnu igru odmah\n\n` +
+  command = aliases[command] || command;
+  if (!command) return;
 
-        `### 🎵 Muzika\n` +
-        `- \`.play\` \`naziv ili link\` — Pušta pesmu u glasovnom kanalu\n` +
-        `- \`.skip\` \`.stop\` \`.pause\` \`.resume\` \`.queue\` \`.leave\``
-      )
-      .setTimestamp();
+  const member = message.member;
+  const target = message.mentions.members.first();
 
-    await message.reply({ embeds: [helpEmbed] });
-  }
-  
-});
-    
+  const hasPermission = permission => {
+    if (member.permissions.has(permission)) return true;
 
-    // BAN
+    message.reply({
+      embeds: [
+        embed('Nemaš dozvolu', 'Nemaš potrebnu dozvolu za ovu komandu.')
+      ]
+    }).catch(() => {});
+
+    return false;
+  };
+
+  try {
+    // HELP
+    if (['help', 'pomoc', 'pomoć'].includes(command)) {
+      return message.reply({
+        embeds: [
+          embed(
+            'HAOS • Komande',
+            '**🛡️ MODERACIJA**\n' +
+            '`.ban` / `.b @član [razlog]`\n' +
+            '`.hardban` / `.hb @član [razlog]`\n' +
+            '`.softban` / `.sb @član [razlog]`\n' +
+            '`.unban` / `.ub ID [razlog]`\n' +
+            '`.kick` / `.k @član [razlog]`\n' +
+            '`.hardkick` / `.hk @član [razlog]`\n' +
+            '`.mute` / `.m @član 10m [razlog]`\n' +
+            '`.hardmute` / `.hm @član [razlog]`\n' +
+            '`.unmute` / `.um @član`\n' +
+            '`.warn` / `.w @član [razlog]`\n' +
+            '`.warnings` / `.ws @član`\n\n' +
+            '**🎉 NAGRADNE IGRE**\n' +
+            '`.giveaway` / `.gw 10m 1 Nagrada`\n' +
+            '`.endgiveaway` / `.egw ID_poruke`\n' +
+            '`.reroll` / `.rr ID_poruke`\n\n' +
+            '**ℹ️ OSTALO**\n' +
+            '`.help` / `.h`'
+          )
+        ]
+      });
+    }
+
+    // HARDBAN — trajni ban, briše poruke do 7 dana
+    if (command === 'hardban') {
+      if (!hasPermission(PermissionFlagsBits.BanMembers)) return;
+      if (!target) {
+        return message.reply('Upotreba: `.hardban @član [razlog]` ili `.hb @član [razlog]`');
+      }
+      if (!target.bannable) {
+        return message.reply('Ne mogu da banujem ovog člana. Proveri uloge bota.');
+      }
+
+      const why = reason(args);
+
+      await dm(
+        target.user,
+        'HAOS • HARDBAN',
+        `**Moderator:** ${message.author.tag}\n**Razlog:** ${why}`
+      );
+
+      await target.ban({
+        deleteMessageSeconds: 604800,
+        reason: `${why} | Hardban | Moderator: ${message.author.tag}`
+      });
+
+      log(
+        message.guild,
+        'HARDBAN',
+        `Član: ${target.user.tag}\nModerator: ${message.author.tag}\nRazlog: ${why}`
+      );
+
+      return message.reply({
+        embeds: [
+          embed(
+            '🔨 HARDBAN',
+            `**Član:** ${target.user.tag}\n**Poruke obrisane:** do 7 dana\n**Razlog:** ${why}`
+          )
+        ]
+      });
+    }
+
+    // SOFTBAN — ban pa odmah unban, briše poruke do 7 dana
+    if (command === 'softban') {
+      if (!hasPermission(PermissionFlagsBits.BanMembers)) return;
+      if (!target) {
+        return message.reply('Upotreba: `.softban @član [razlog]` ili `.sb @član [razlog]`');
+      }
+      if (!target.bannable) {
+        return message.reply('Ne mogu da banujem ovog člana. Proveri uloge bota.');
+      }
+
+      const why = reason(args);
+      const user = target.user;
+
+      await target.ban({
+        deleteMessageSeconds: 604800,
+        reason: `${why} | Softban | Moderator: ${message.author.tag}`
+      });
+
+      await message.guild.members.unban(
+        user.id,
+        `Softban završen | ${why}`
+      );
+
+      await dm(
+        user,
+        'HAOS • SOFTBAN',
+        `Poruke iz poslednjih 7 dana su obrisane.\n**Moderator:** ${message.author.tag}\n**Razlog:** ${why}`
+      );
+
+      log(
+        message.guild,
+        'SOFTBAN',
+        `Član: ${user.tag}\nModerator: ${message.author.tag}\nRazlog: ${why}`
+      );
+
+      return message.reply({
+        embeds: [
+          embed(
+            '🧹 SOFTBAN',
+            `**Korisnik:** ${user.tag}\nBan je odmah uklonjen, a poruke iz poslednjih 7 dana su obrisane.\n**Razlog:** ${why}`
+          )
+        ]
+      });
+    }
+
+    // OBIČAN BAN
     if (command === 'ban') {
       if (!hasPermission(PermissionFlagsBits.BanMembers)) return;
-      if (!target) return message.reply('Upotreba: `.ban @član [razlog]`');
-
+      if (!target) {
+        return message.reply('Upotreba: `.ban @član [razlog]`');
+      }
       if (!target.bannable) {
         return message.reply('Ne mogu da banujem ovog člana. Proveri uloge bota.');
       }
@@ -240,7 +361,7 @@ client.on(Events.MessageCreate, async message => {
       log(
         message.guild,
         'Član je banovan',
-        `Član: ${target.user.tag}\nRazlog: ${why}`
+        `Član: ${target.user.tag}\nModerator: ${message.author.tag}\nRazlog: ${why}`
       );
 
       return message.reply({
@@ -253,14 +374,14 @@ client.on(Events.MessageCreate, async message => {
       });
     }
 
-    // UNBAN
+    // UNBAN — radi i za hardban i za običan ban
     if (command === 'unban') {
       if (!hasPermission(PermissionFlagsBits.BanMembers)) return;
 
       const id = args.shift();
 
       if (!id || !/^\d{17,20}$/.test(id)) {
-        return message.reply('Upotreba: `.unban ID [razlog]`');
+        return message.reply('Upotreba: `.unban ID [razlog]` ili `.ub ID [razlog]`');
       }
 
       const why = reason(args);
@@ -271,7 +392,13 @@ client.on(Events.MessageCreate, async message => {
       await dm(
         user,
         'HAOS • Ban uklonjen',
-        `Vaš ban na serveru je uklonjen.\n**Razlog:** ${why}`
+        `Vaš ban na serveru je uklonjen.\n**Moderator:** ${message.author.tag}\n**Razlog:** ${why}`
+      );
+
+      log(
+        message.guild,
+        'Ban je uklonjen',
+        `Korisnik: ${user.tag}\nModerator: ${message.author.tag}\nRazlog: ${why}`
       );
 
       return message.reply({
@@ -284,11 +411,50 @@ client.on(Events.MessageCreate, async message => {
       });
     }
 
-    // KICK
+    // HARDKICK
+    if (command === 'hardkick') {
+      if (!hasPermission(PermissionFlagsBits.KickMembers)) return;
+      if (!target) {
+        return message.reply('Upotreba: `.hardkick @član [razlog]` ili `.hk @član [razlog]`');
+      }
+      if (!target.kickable) {
+        return message.reply('Ne mogu da izbacim ovog člana. Proveri uloge bota.');
+      }
+
+      const why = reason(args);
+
+      await dm(
+        target.user,
+        'HAOS • HARDKICK',
+        `**Moderator:** ${message.author.tag}\n**Razlog:** ${why}`
+      );
+
+      await target.kick(
+        `${why} | Hardkick | Moderator: ${message.author.tag}`
+      );
+
+      log(
+        message.guild,
+        'HARDKICK',
+        `Član: ${target.user.tag}\nModerator: ${message.author.tag}\nRazlog: ${why}`
+      );
+
+      return message.reply({
+        embeds: [
+          embed(
+            '👢 HARDKICK',
+            `**Član:** ${target.user.tag}\n**Razlog:** ${why}`
+          )
+        ]
+      });
+    }
+
+    // OBIČAN KICK
     if (command === 'kick') {
       if (!hasPermission(PermissionFlagsBits.KickMembers)) return;
-      if (!target) return message.reply('Upotreba: `.kick @član [razlog]`');
-
+      if (!target) {
+        return message.reply('Upotreba: `.kick @član [razlog]`');
+      }
       if (!target.kickable) {
         return message.reply('Ne mogu da izbacim ovog člana.');
       }
@@ -303,6 +469,12 @@ client.on(Events.MessageCreate, async message => {
 
       await target.kick(`${why} | Moderator: ${message.author.tag}`);
 
+      log(
+        message.guild,
+        'Član je izbačen',
+        `Član: ${target.user.tag}\nModerator: ${message.author.tag}\nRazlog: ${why}`
+      );
+
       return message.reply({
         embeds: [
           embed(
@@ -313,10 +485,35 @@ client.on(Events.MessageCreate, async message => {
       });
     }
 
-    // MUTE
+    // HARDMUTE — timeout od 28 dana
+    if (command === 'hardmute') {
+      if (!hasPermission(PermissionFlagsBits.ModerateMembers)) return;
+      if (!target) {
+        return message.reply('Upotreba: `.hardmute @član [razlog]` ili `.hm @član [razlog]`');
+      }
+      if (!target.moderatable) {
+        return message.reply('Ne mogu da utišam ovog člana. Proveri uloge bota.');
+      }
+
+      const why = reason(args);
+      const ms = 28 * 24 * 60 * 60 * 1000;
+
+      await target.timeout(
+        ms,
+        `${why} | Hardmute | Moderator: ${message.author.tag}`
+      );
+
+      return confirmModeration(
+        message,
+        target.user,
+        'HARDMUTE • 28 dana',
+        `${why}\nTrajanje: 28 dana`
+      );
+    }
+
+    // OBIČAN MUTE — do 7 dana
     if (command === 'mute') {
       if (!hasPermission(PermissionFlagsBits.ModerateMembers)) return;
-
       if (!target || !args[0]) {
         return message.reply('Upotreba: `.mute @član 10m [razlog]`');
       }
@@ -325,18 +522,18 @@ client.on(Events.MessageCreate, async message => {
       const ms = durationMs(text);
 
       if (!ms) {
-        return message.reply(
-          'Trajanje mora biti npr. `10m`, `2h` ili `1d` (najviše 7 dana).'
-        );
+        return message.reply('Trajanje npr. `10m`, `2h` ili `7d` (najviše 7 dana).');
       }
-
       if (!target.moderatable) {
         return message.reply('Ne mogu da utišam ovog člana.');
       }
 
       const why = reason(args);
 
-      await target.timeout(ms, `${why} | Moderator: ${message.author.tag}`);
+      await target.timeout(
+        ms,
+        `${why} | Moderator: ${message.author.tag}`
+      );
 
       return confirmModeration(
         message,
@@ -349,8 +546,9 @@ client.on(Events.MessageCreate, async message => {
     // UNMUTE
     if (command === 'unmute') {
       if (!hasPermission(PermissionFlagsBits.ModerateMembers)) return;
-      if (!target) return message.reply('Upotreba: `.unmute @član`');
-
+      if (!target) {
+        return message.reply('Upotreba: `.unmute @član` ili `.um @član`');
+      }
       if (!target.moderatable) {
         return message.reply('Ne mogu da uklonim utišavanje ovom članu.');
       }
@@ -368,7 +566,9 @@ client.on(Events.MessageCreate, async message => {
     // WARN
     if (command === 'warn') {
       if (!hasPermission(PermissionFlagsBits.ModerateMembers)) return;
-      if (!target) return message.reply('Upotreba: `.warn @član [razlog]`');
+      if (!target) {
+        return message.reply('Upotreba: `.warn @član [razlog]` ili `.w @član [razlog]`');
+      }
 
       const why = reason(args);
       const data = loadWarnings();
@@ -385,8 +585,7 @@ client.on(Events.MessageCreate, async message => {
       const sent = await dm(
         target.user,
         'HAOS • Upozorenje',
-        `Server: **${message.guild.name}**\n` +
-        `**Moderator:** ${message.author.tag}\n**Razlog:** ${why}`
+        `Server: **${message.guild.name}**\n**Moderator:** ${message.author.tag}\n**Razlog:** ${why}`
       );
 
       return message.reply({
@@ -405,7 +604,9 @@ client.on(Events.MessageCreate, async message => {
     // PREGLED UPOZORENJA
     if (command === 'warnings') {
       if (!hasPermission(PermissionFlagsBits.ModerateMembers)) return;
-      if (!target) return message.reply('Upotreba: `.warnings @član`');
+      if (!target) {
+        return message.reply('Upotreba: `.warnings @član` ili `.ws @član`');
+      }
 
       const list = loadWarnings()[target.id] || [];
 
@@ -552,13 +753,13 @@ client.on(Events.MessageCreate, async message => {
       });
     }
 
-    // REROLL
+    // NOVO IZVLAČENJE POBEDNIKA
     if (command === 'reroll') {
       if (!hasPermission(PermissionFlagsBits.ManageGuild)) return;
 
       const messageId = args[0];
       if (!messageId) {
-        return message.reply('Upotreba: `.reroll ID_poruke`');
+        return message.reply('Upotreba: `.reroll ID_poruke` ili `.rr ID_poruke`');
       }
 
       const giveawayMessage = await message.channel.messages
@@ -566,9 +767,7 @@ client.on(Events.MessageCreate, async message => {
         .catch(() => null);
 
       if (!giveawayMessage) {
-        return message.reply(
-          'Ne mogu da pronađem poruku nagradne igre u ovom kanalu.'
-        );
+        return message.reply('Ne mogu da pronađem poruku nagradne igre u ovom kanalu.');
       }
 
       const reaction = giveawayMessage.reactions.cache.get('🎉');
@@ -583,9 +782,7 @@ client.on(Events.MessageCreate, async message => {
         return message.reply('Nema učesnika za novo izvlačenje.');
       }
 
-      const winner = entrants[
-        Math.floor(Math.random() * entrants.length)
-      ];
+      const winner = entrants[Math.floor(Math.random() * entrants.length)];
 
       return message.reply({
         embeds: [
@@ -605,10 +802,30 @@ client.on(Events.MessageCreate, async message => {
       embeds: [
         embed(
           'Greška',
-          'Komanda nije uspela. Proveri dozvole bota i terminal.'
+          'Komanda nije uspela. Proveri dozvole bota i konzolu.'
         )
       ]
     }).catch(() => {});
+  }
+});
+
+// ODGOVOR KADA NEKO POMENE BOTA
+client.on(Events.MessageCreate, async message => {
+  if (message.author.bot || !client.user) return;
+
+  if (
+    message.mentions.has(client.user) &&
+    !message.mentions.everyone
+  ) {
+    const mentionEmbed = new EmbedBuilder()
+      .setColor(0xFF8C00)
+      .setTitle('🤖 Haos Client — Mention')
+      .setDescription(
+        `• Ćao ${message.author}, ja sam personalizovani **Client** za **Haos** balkanski server.\n` +
+        '• Koristim prefix `.`. Ukucaj `.help` za više informacija.'
+      );
+
+    await message.reply({ embeds: [mentionEmbed] }).catch(() => {});
   }
 });
 
@@ -617,23 +834,5 @@ if (!process.env.DISCORD_TOKEN) {
   console.error('Nedostaje DISCORD_TOKEN u .env fajlu.');
   process.exit(1);
 }
-
-// ODGOVOR KADA NEKO POMENE BOTA
-client.on(Events.MessageCreate, async message => {
-  if (message.author.bot) return;
-
-  // Odgovor kada neko taguje bota
-  if (message.mentions.has(client.user) && !message.mentions.everyone) {
-    const embed = new EmbedBuilder()
-      .setColor(0xFF8C00)
-      .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Mention')
-      .setDescription(
-        `- Ćao ${message.author}, ja sam personalizovani **Client** za **Haos** balkanski server.\n` +
-        `- Koristim prefix \`.\` (tačka) ako ti je potrebna pomoć kucaj \`.help\` za više informacija.`
-      );
-
-    await message.reply({ embeds: [embed] });
-  }
-});
 
 client.login(process.env.DISCORD_TOKEN);
