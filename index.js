@@ -188,7 +188,7 @@ client.on(Events.MessageCreate, async message => {
   const args = message.content.slice(PREFIX.length).trim().split(/\s+/);
   let command = (args.shift() || '').toLowerCase();
 
-  // AVATAR KOMANDE: .av i .avatar
+ // AVATAR (.av / .avatar)
   if (['av', 'avatar'].includes(command)) {
     const member = message.mentions.users.first();
     const userId = member?.id || args[0]?.replace(/[<@!>]/g, '');
@@ -199,7 +199,12 @@ client.on(Events.MessageCreate, async message => {
         ? await client.users.fetch(userId, { force: true })
         : message.author;
     } catch {
-      return message.reply('❌ Ne mogu da pronađem tog korisnika.');
+      const errorEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Ne mogu pronaći navedenog korisnika.');
+
+      return message.reply({ embeds: [errorEmbed] });
     }
 
     const avatarURL = targetUser.displayAvatarURL({
@@ -209,16 +214,19 @@ client.on(Events.MessageCreate, async message => {
     });
 
     const embed = new EmbedBuilder()
-      .setColor('#3498DB')
-      .setTitle(`Avatar korisnika ${targetUser.username}`)
+      .setColor(0xFF8C00)
+      .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Avatar')
+      .setDescription(
+        `- Avatar korisnika: ${targetUser}\n` +
+        `- [Direktan link do slike](${avatarURL})`
+      )
       .setImage(avatarURL)
-      .setURL(avatarURL)
-      .setFooter({ text: `Zatražio: ${message.author.username}` });
+      .setTimestamp();
 
     return message.reply({ embeds: [embed] });
   }
 
-  // BANNER KOMANDA: .banner
+  // BANNER (.banner)
   if (command === 'banner') {
     const member = message.mentions.users.first();
     const userId = member?.id || args[0]?.replace(/[<@!>]/g, '');
@@ -229,7 +237,12 @@ client.on(Events.MessageCreate, async message => {
         ? await client.users.fetch(userId, { force: true })
         : await client.users.fetch(message.author.id, { force: true });
     } catch {
-      return message.reply('❌ Ne mogu da pronađem tog korisnika.');
+      const errorEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Ne mogu pronaći navedenog korisnika.');
+
+      return message.reply({ embeds: [errorEmbed] });
     }
 
     const bannerURL = targetUser.bannerURL({
@@ -238,15 +251,23 @@ client.on(Events.MessageCreate, async message => {
     });
 
     if (!bannerURL) {
-      return message.reply('❌ Ovaj korisnik nema Discord banner.');
+      const noBannerEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription(`- Korisnik ${targetUser} nema postavljen baner.`);
+
+      return message.reply({ embeds: [noBannerEmbed] });
     }
 
     const embed = new EmbedBuilder()
-      .setColor('#3498DB')
-      .setTitle(`Banner korisnika ${targetUser.username}`)
+      .setColor(0xFF8C00)
+      .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Banner')
+      .setDescription(
+        `- Baner korisnika: ${targetUser}\n` +
+        `- [Direktan link do slike](${bannerURL})`
+      )
       .setImage(bannerURL)
-      .setURL(bannerURL)
-      .setFooter({ text: `Zatražio: ${message.author.username}` });
+      .setTimestamp();
 
     return message.reply({ embeds: [embed] });
   }
