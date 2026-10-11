@@ -501,8 +501,10 @@ client.on(Events.MessageCreate, async message => {
       });
     }
 
-    // HELP
+   // HELP
   if (command === 'help') {
+    console.log("-> Korisnik je ukucao help komandu!");
+    
     return embed('Haos Client — Komande',
       '**Moderacija:**\n' +
       '`.ban` - Banovanje korisnika sa servera\n' +
