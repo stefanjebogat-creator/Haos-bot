@@ -503,19 +503,23 @@ client.on(Events.MessageCreate, async message => {
 
    // HELP
   if (command === 'help') {
-    return embed(
-      'Haos Client — Komande',
-      '**Moderacija:**\n' +
-      '`.ban` - Banovanje korisnika sa servera\n' +
-      '`.unban` - Uklanjanje bana preko ID-ja\n\n' +
-      '**Utility & Media:**\n' +
-      '`.ticket` - Otvaranje privatnog tiketa\n' +
-      '`.av` - Prikaz avatara korisnika\n' +
-      '`.banner` - Prikaz banera korisnika',
-      message
-    );
-  }
+    const helpEmbed = new EmbedBuilder()
+      .setColor(0xFF8C00)
+      .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Komande')
+      .setDescription(
+        '**Moderacija:**\n' +
+        '`.ban` - Banovanje korisnika sa servera\n' +
+        '`.unban` - Uklanjanje bana preko ID-ja\n\n' +
+        '**Utility & Media:**\n' +
+        '`.ticket` - Otvaranje privatnog tiketa\n' +
+        '`.av` - Prikaz avatara korisnika\n' +
+        '`.banner` - Prikaz banera korisnika'
+      )
+      .setTimestamp();
 
+    return message.reply({ embeds: [helpEmbed] });
+  }
+    
     // HARDBAN
     if (command === 'hardban') {
       if (!hasPermission(PermissionFlagsBits.BanMembers)) return;
