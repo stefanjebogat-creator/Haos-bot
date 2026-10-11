@@ -502,35 +502,18 @@ client.on(Events.MessageCreate, async message => {
     }
 
     // HELP
-    if (['help', 'pomoc', 'pomoć'].includes(command)) {
-      return message.reply({
-        embeds: [
-          embed(
-            'HAOS • Komande',
-            '**🛡️ MODERACIJA**\n' +
-            '`.ban` / `.b @član [razlog]`\n' +
-            '`.hardban` / `.hb @član [razlog]`\n' +
-            '`.softban` / `.sb @član [razlog]`\n' +
-            '`.unban` / `.ub ID [razlog]`\n' +
-            '`.kick` / `.k @član [razlog]`\n' +
-            '`.hardkick` / `.hk @član [razlog]`\n' +
-            '`.mute` / `.m @član 10m [razlog]`\n' +
-            '`.hardmute` / `.hm @član [razlog]`\n' +
-            '`.unmute` / `.um @član`\n' +
-            '`.warn` / `.w @član [razlog]`\n' +
-            '`.warnings` / `.ws @član`\n\n' +
-            '**🎉 NAGRADNE IGRE**\n' +
-            '`.giveaway` / `.gw 10m 1 Nagrada`\n' +
-            '`.endgiveaway` / `.egw ID_poruke`\n' +
-            '`.reroll` / `.rr ID_poruke`\n\n' +
-            '**🎫 TICKETS**\n' +
-            '`.ticketsetup` / `.ts` — postavi ticket panel\n\n' +
-            '**ℹ️ OSTALO**\n' +
-            '`.help` / `.h`'
-          )
-        ]
-      });
-    }
+  if (command === 'help') {
+    return embed('Haos Client — Komande',
+      '**Moderacija:**\n' +
+      '`.ban` - Banovanje korisnika sa servera\n' +
+      '`.unban` - Uklanjanje bana preko ID-ja\n\n' +
+      '**Utility & Media:**\n' +
+      '`.ticket` - Otvaranje privatnog tiketa\n' +
+      '`.av` - Prikaz avatara korisnika\n' +
+      '`.banner` - Prikaz banera korisnika'
+    ]
+    });
+  }
 
     // HARDBAN
     if (command === 'hardban') {
