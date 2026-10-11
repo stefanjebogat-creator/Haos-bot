@@ -951,7 +951,8 @@ client.on(Events.MessageCreate, async message => {
 if (!process.env.DISCORD_TOKEN) {
   console.error('Nedostaje DISCORD_TOKEN u .env fajlu.');
   process.exit(1);
-} // <-- OVA ZAGRADA MORA DA STOJI NA LINIJI 955 DA ZATVORI PRETHODNU KOMANDU!
+  
+} 
 
   // -------------------------------------------------------------
   // KOMANDA: .guess [broj]
