@@ -225,7 +225,7 @@ client.on(Events.MessageCreate, async message => {
 
       const why = reason(args);
 
-      await dm(
+      await dm
         target.user,
         'HAOS • Banovanje',
         `**Moderator:** ${message.author.tag}\n**Razlog:** ${why}`
