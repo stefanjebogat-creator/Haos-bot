@@ -847,28 +847,26 @@ client.on(Events.MessageCreate, async message => {
         .setImage(bannerURL)
         .setTimestamp();
 
-      return message.reply({ embeds: [bannerEmbed] });
-    } catch (error) {
-      console.error(error);
-      return message.reply('- Došlo je do greške prilikom učitavanja banera.');
+     return message.reply({ embeds: [bannerEmbed] });
+      } catch (error) {
+        console.error(error);
+        return message.reply('- Došlo je do greške prilikom učitavanja banera.');
+      }
     }
-  }
 
-// ODGOVOR NA POMINJANJE BOTA
-client.on(Events.MessageCreate, async message => {
-  if (message.author.bot || !client.user) return;
+    // ODGOVOR NA POMINJANJE BOTA
+    if (message.mentions.has(client.user) && !message.mentions.everyone) {
+      const mentionEmbed = new EmbedBuilder()
+        .setColor(0xFF8C00)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Mention')
+        .setDescription(
+          `- Ćao ${message.author}, ja sam personalizovani **Client** za **Haos** balkanski server.\n` +
+          '- Koristim prefix `.`. Ukucaj `.help` za više informacija.'
+        );
 
-  if (message.mentions.has(client.user) && !message.mentions.everyone) {
-    const mentionEmbed = new EmbedBuilder()
-      .setColor(0xFF8C00)
-      .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Mention')
-      .setDescription(
-        `- Ćao ${message.author}, ja sam personalizovani **Client** za **Haos** balkanski server.\n` +
-        '- Koristim prefix `.`. Ukucaj `.help` za više informacija.'
-      );
+      await message.reply({ embeds: [mentionEmbed] }).catch(() => {});
+    }
 
-    await message.reply({ embeds: [mentionEmbed] }).catch(() => {});
-  }
 });
 
 // PROVERA TOKENA I POKRETANJE
