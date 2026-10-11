@@ -181,69 +181,6 @@ client.on(Events.GuildBanRemove, ban => {
   log(ban.guild, 'Ban je uklonjen', `Član: ${ban.user.tag}`);
 });
 
-// TICKET
-  if (command === 'ticket') {
-    const channelName = `ticket-${message.author.username}`.toLowerCase();
-
-    // Provera da li već postoji kanal
-    const existingChannel = message.guild.channels.cache.find(c => c.name === channelName);
-    if (existingChannel) {
-      const alreadyOpenEmbed = new EmbedBuilder()
-        .setColor(0xFF0000)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
-        .setDescription(`- Već imate otvoren tiket kanal: ${existingChannel}`);
-
-      return message.reply({ embeds: [alreadyOpenEmbed] });
-    }
-
-    try {
-      // Kreiranje privatnog tekstualnog kanala
-      const ticketChannel = await message.guild.channels.create({
-        name: channelName,
-        type: ChannelType.GuildText,
-        permissionOverwrites: [
-          {
-            id: message.guild.id,
-            deny: [PermissionFlagsBits.ViewChannel],
-          }
-          {
-            id: message.author.id,
-            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
-          }
-          {
-            id: client.user.id,
-            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ManageChannels],
-          }
-        ]
-      });
-
-      // Poruka unutar tiketa
-      const ticketEmbed = new EmbedBuilder()
-        .setColor(0xFF8C00)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Tiket')
-        .setDescription(
-          `- Dobrodošli u vaš tiket, ${message.author}!\n` +
-          `- **Opišite vaš problem ili razlog otvaranja tiketa.**\n` +
-          `- Ubrzo će vam se neko od osoblja pridružiti.\n` +
-          `- Za zatvaranje tiketa ukucajte \`.close\``
-        )
-        .setTimestamp();
-
-      await ticketChannel.send({ content: `${message.author}`, embeds: [ticketEmbed] });
-
-      // Potvrda korisniku
-      const successEmbed = new EmbedBuilder()
-        .setColor(0xFF8C00)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Tiket')
-        .setDescription(`- Uspešno ste otvorili tiket! Možete pristupiti ovde: ${ticketChannel}`);
-
-      return message.reply({ embeds: [successEmbed] });
-    } catch (error) {
-      console.error(error);
-      return message.reply('- Došlo je do greške prilikom kreiranja tiketa.');
-    }
-  }
-});
 
 // SVE KOMANDE
 client.on(Events.MessageCreate, async message => {
