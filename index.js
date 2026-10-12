@@ -740,7 +740,7 @@ if (command === 'giveaway') {
     `<:haos_sat:1559206979170214000> **Završava se:** <t:${Math.floor(endAt / 1000)}:R>\n\n` +
     `Reaguj sa <:haos_gw:1559207001735700550> da učestvuješ!`
   )
-  .setTimestamp(endDate);
+  .setTimestamp(new Date(endAt));
 
 
   const giveawayMessage = await message.channel.send({
