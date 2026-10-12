@@ -24,7 +24,7 @@ const WHITELIST_FILE = path.join(__dirname, 'whitelist.json');
 const WARNINGS_FILE = path.join(__dirname, 'warnings.json');
 
 // OBAVEZNO: ovde upiši svoj Discord USER ID.
-const BOT_OWNER_IDS = ['UPISI_SVOJ_DISCORD_USER_ID'];
+const BOT_OWNER_IDS = ['1253255881500655617'];
 
 const GW_EMOJI = '<:haos_gw:1559207001735700550>';
 const GW_EMOJI_ID = '1559207001735700550';
