@@ -256,7 +256,6 @@ client.on('messageCreate', async (message) => {
         .setTitle('<:9437invite:1559292509719502938> Haos Client — Invites')
         .setThumbnail(targetUser.displayAvatarURL({ dynamic: true, size: 256 }))
         .setDescription(`- Ukupno pozvanih članova: \`${totalUses}\`\n- **Korisnik:** <@${targetUser.id}>`)
-        .setTimestamp();
 
       return message.reply({ embeds: [invitesEmbed] });
     } catch (error) {
@@ -279,7 +278,6 @@ if (command === 'mc' || command === 'membercount') {
         `- **Ukupno članova:** \`${memberCount}\``
       )
       .setFooter({ text: 'Haos Client • Statistika Servera' })
-      .setTimestamp();
 
     return message.reply({ embeds: [mcEmbed] });
   }
@@ -306,7 +304,6 @@ if (command === 'mc' || command === 'membercount') {
           `- **Ukupno kanala:** \`${guild.channels.cache.size}\`\n` +
           `- **Boost Nivo:** \`Level ${guild.premiumTier}\` (\`${guild.premiumSubscriptionCount || 0}\` boost-ova)`
         )
-        .setTimestamp();
 
       return message.reply({ embeds: [serverEmbed] });
 
@@ -395,7 +392,6 @@ if (command === 'mc' || command === 'membercount') {
         `- [Direktan link do slike](${avatarURL})`
       )
       .setImage(avatarURL)
-      .setTimestamp();
 
     return message.reply({ embeds: [embed] });
   }
@@ -441,7 +437,6 @@ if (command === 'mc' || command === 'membercount') {
         `- [Direktan link do slike](${bannerURL})`
       )
       .setImage(bannerURL)
-      .setTimestamp();
 
     return message.reply({ embeds: [embed] });
   }
@@ -488,7 +483,6 @@ if (command === 'mc' || command === 'membercount') {
           `- Uspešno obrisano **${deletedMessages.size}** poruka u kanalu ${message.channel}.\n` +
           `- **Moderator:** ${message.author}`
         )
-        .setTimestamp();
 
       // Šalje potvrdu i briše je automatski posle 5 sekundi
       const replyMsg = await message.channel.send({ embeds: [successEmbed] });
@@ -573,7 +567,6 @@ if (command === 'mc' || command === 'membercount') {
               `- Ovaj kanal je uspešno očišćen !\n` +
               `- **Moderator:** ${message.author}`
             )
-            .setTimestamp();
 
           return newChannel.send({ embeds: [nukeEmbed] });
 
@@ -758,7 +751,6 @@ if (command === 'mc' || command === 'membercount') {
         '- `.banner` `[@korisnik]` — Prikazuje baner korisnika'
       )
       .setFooter({ text: 'Haos Client • Zvanični Meni' })
-      .setTimestamp();
 
     return message.reply({ embeds: [helpEmbed] });
   }
@@ -1193,7 +1185,6 @@ if (command === 'mc' || command === 'membercount') {
           `- **Razlog:** \`${reason}\`\n` +
           `- **Moderator:** ${message.author}`
         )
-        .setTimestamp();
 
     return message.reply({ embeds: [successEmbed] });
     } catch (error) {
@@ -1239,7 +1230,6 @@ if (command === 'mc' || command === 'membercount') {
           `- **Razlog:** \`${reason}\`\n` +
           `- **Moderator:** ${message.author}`
         )
-        .setTimestamp();
 
       return message.reply({ embeds: [successEmbed] });
     } catch (error) {
@@ -1364,7 +1354,6 @@ if (command === 'mc' || command === 'membercount') {
           `- **Razlog:** \`${reason}\``
         )
         .setFooter({ text: 'Haos Client • Moderacija' })
-        .setTimestamp();
 
       return message.reply({ embeds: [muteEmbed] });
     } catch (error) {
@@ -1405,7 +1394,6 @@ if (command === 'mc' || command === 'membercount') {
           `- **Razlog:** \`${reason}\``
         )
         .setFooter({ text: 'Haos Client • Moderacija' })
-        .setTimestamp();
 
       return message.reply({ embeds: [unmuteEmbed] });
     } catch (error) {
