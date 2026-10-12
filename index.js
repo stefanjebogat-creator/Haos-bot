@@ -735,7 +735,7 @@ client.on(Events.MessageCreate, async message => {
     if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
       const noPermEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Nemate potrebne dozvole za opominjanje članova.');
 
       return message.reply({ embeds: [noPermEmbed] });
@@ -748,7 +748,7 @@ client.on(Events.MessageCreate, async message => {
     if (!member) {
       const usageEmbed = new EmbedBuilder()
         .setColor(0xFF8C00)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Warn')
+        .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Warn')
         .setDescription(
           '- Pogrešna upotreba komande!\n' +
           '- Upotreba: `.warn` `[@korisnik]` `[razlog]`'
@@ -761,7 +761,7 @@ client.on(Events.MessageCreate, async message => {
     if (member.id === message.author.id) {
       const selfWarnEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Ne možete opomenuti sami sebe.');
 
       return message.reply({ embeds: [selfWarnEmbed] });
@@ -771,7 +771,7 @@ client.on(Events.MessageCreate, async message => {
       // Slanje privatne poruke opomenutom korisniku (opciono)
       const dmEmbed = new EmbedBuilder()
         .setColor(0xFF8C00)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Opomena')
+        .setTitle('<:233446highwarning:1559143434206314557> Haos Client — Opomena')
         .setDescription(
           `- Dobili ste opomenu na serveru **${message.guild.name}**!\n` +
           `- **Razlog:** \`${reason}\`\n` +
@@ -786,7 +786,7 @@ client.on(Events.MessageCreate, async message => {
       // Potvrda u kanalu gde je izvršena komanda
       const successEmbed = new EmbedBuilder()
         .setColor(0xFF8C00)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Warn')
+        .setTitle('\<:6728_true:1558944305283080232> Haos Client — Warn')
         .setDescription(
           `- Uspešno opomenut korisnik: ${member.user}\n` +
           `- **Razlog:** \`${reason}\`\n` +
@@ -800,38 +800,57 @@ client.on(Events.MessageCreate, async message => {
       console.error(error);
       const errEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Došlo je do greške prilikom slanja opomene.');
 
       return message.reply({ embeds: [errEmbed] });
     }
   }
 
-    // PREGLED UPOZORENJA
-    if (command === 'warnings') {
-      if (!hasPermission(PermissionFlagsBits.ModerateMembers)) return;
-      if (!target) return message.reply('Upotreba: `.warnings @član` ili `.ws @član`');
+    // WARNINGS (.warnings / .warns)
+  if (['warnings', 'warns'].includes(command)) {
+    // Provera dozvola za moderatora
+    if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
+      const noPermEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Nemate potrebne dozvole za pregled opomena.');
 
-      const list = loadWarnings()[target.id] || [];
-
-      if (!list.length) {
-        return message.reply({
-          embeds: [embed('Upozorenja', 'Ovaj član nema zabeleženih upozorenja.')]
-        });
-      }
-
-      return message.reply({
-        embeds: [
-          embed(
-            `Upozorenja • ${target.user.tag}`,
-            list.slice(-10).map((w, i) =>
-              `**${i + 1}.** ${w.razlog}\nModerator: ${w.moderator}`
-            ).join('\n\n')
-          )
-        ]
-      });
+      return message.reply({ embeds: [noPermEmbed] });
     }
 
+    const member = message.mentions.members.first() || message.member;
+    const userWarns = warningsDB.get(member.id) || [];
+
+    // Ako korisnik nema nijednu opomenu
+    if (userWarns.length === 0) {
+      const noWarnsEmbed = new EmbedBuilder()
+        .setColor(0xFF8C00)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Opomene')
+        .setDescription(`- Korisnik ${member.user} nema nijednu aktivnu opomenu.`)
+        .setTimestamp();
+
+      return message.reply({ embeds: [noWarnsEmbed] });
+    }
+
+    // Formatiranje liste opomena
+    const warnList = userWarns.map((w, index) => 
+      `- **#${index + 1}** | **Razlog:** \`${w.reason}\` | **Moderator:** ${w.moderator}`
+    ).join('\n');
+
+    const warnsEmbed = new EmbedBuilder()
+      .setColor(0xFF8C00)
+      .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Opomene')
+      .setDescription(
+        `- **Korisnik:** ${member.user}\n` +
+        `- **Ukupno opomena:** \`${userWarns.length}\`\n\n` +
+        `**Lista opomena:**\n${warnList}`
+      )
+      .setTimestamp();
+
+    return message.reply({ embeds: [warnsEmbed] });
+  }
+    
     // GIVEAWAY
     if (command === 'giveaway') {
       if (!hasPermission(PermissionFlagsBits.ManageGuild)) return;
