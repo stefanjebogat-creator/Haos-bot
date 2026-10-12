@@ -231,12 +231,16 @@ client.on(Events.MessageCreate, async message => {
 client.on('messageCreate', async (message) => {
   if (message.author.bot || !message.guild) return;
 
-  const cmd = message.content.trim().toLowerCase();
+  const content = message.content.trim();
+  const args = content.split(/\s+/);
+  const command = args[0].toLowerCase();
 
-  if (cmd === '.invites' || cmd === '.invite' || cmd === '.i') {
+  if (command === '.invites' || command === '.invite' || command === '.i') {
     try {
+      const targetUser = message.mentions.users.first() || message.author;
+
       const guildInvites = await message.guild.invites.fetch();
-      const userInvites = guildInvites.filter(i => i.inviter && i.inviter.id === message.author.id);
+      const userInvites = guildInvites.filter(i => i.inviter && i.inviter.id === targetUser.id);
       
       let totalUses = 0;
       userInvites.forEach(inv => {
@@ -245,8 +249,8 @@ client.on('messageCreate', async (message) => {
 
       const invitesEmbed = new EmbedBuilder()
         .setColor(0xFF8C00)
-        .setTitle('<:4301boom:1559281123056549888> Haos Client — Invites')
-        .setDescription(`- Ukupno pozvanih članova: \`${totalUses}\`\n- **Korisnik:** <@${message.author.id}>`)
+        .setTitle('<:9437invite:1559292509719502938> Haos Client — Invites')
+        .setDescription(`- Ukupno pozvanih članova: \`${totalUses}\`\n- **Korisnik:** <@${targetUser.id}>`)
         .setTimestamp();
 
       return message.reply({ embeds: [invitesEmbed] });
