@@ -120,21 +120,22 @@ async function confirmModeration(message, user, title, description) {
 function updateBotStatus() {
   if (!client.user) return;
 
-  // Izračunava ukupan broj članova sa svih servera
-  const totalMembers = client.guilds.cache
-    .reduce((acc, guild) => acc + guild.memberCount, 0)
-    .toLocaleString('en-US');
+  const ukupnoClanova = client.guilds.cache.reduce(
+    (ukupno, guild) => ukupno + guild.memberCount,
+    0
+  );
 
   client.user.setPresence({
     activities: [
       {
-        name: `.help | ${totalMembers} članova`,
+        name: `Ukupno članova ${ukupnoClanova} 👥`,
         type: ActivityType.Watching
       }
     ],
     status: 'online'
   });
 }
+
 
 client.once(Events.ClientReady, bot => {
   console.log(`Bot je online: ${bot.user.tag}`);
@@ -143,7 +144,7 @@ client.once(Events.ClientReady, bot => {
   updateBotStatus();
 
   // Osvežava broj članova na svakih 10 minuta
-  setInterval(updateBotStatus, 10 * 60 * 1000);
+  setInterval(updateBotStatus, 5 * 60 * 1000);
 });
 
 // WELCOME PORUKA
