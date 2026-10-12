@@ -699,7 +699,7 @@ client.on(Events.MessageCreate, async message => {
     if (!target) {
       const noTargetEmbed = new EmbedBuilder()
         .setColor(0xFF8C00)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Ban')
+        .setTitle('<:7191_unban_hammer:1559151627213217852> Haos Client — Ban')
         .setDescription(
           `- Pogrešna upotreba komande!\n` +
           `- Upotreba: \`.ban\` \`@član\` \`[razlog]\``
