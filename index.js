@@ -710,6 +710,7 @@ client.on(Events.MessageCreate, async message => {
     // ==========================================
     // HAOS GIVEAWAY SISTEM
     // ==========================================
+
     const GW_EMOJI = '<:haos_gw:1559207001735700550>';
     const GW_SAT = '<:haos_sat:1559206979170214000>';
     const GW_NAGRADA = '<:haos_nagrada:1559206996253872208>';
@@ -719,7 +720,7 @@ client.on(Events.MessageCreate, async message => {
     const GW_COLOR = '#F3994A';
 
     // POKRETANJE: .gstart 10m 1 Nitro
-    if (command === 'giveaway') {
+    if (['gstart', 'giveaway'].includes(command)) {
       if (!hasPermission(PermissionFlagsBits.ManageGuild)) return;
 
       const durationText = args[0];
@@ -731,7 +732,13 @@ client.on(Events.MessageCreate, async message => {
         return message.reply('Upotreba: `.gstart 10m 1 Nitro`');
       }
 
-      const units = { s: 1000, m: 60000, h: 3600000, d: 86400000 };
+      const units = {
+        s: 1000,
+        m: 60000,
+        h: 3600000,
+        d: 86400000
+      };
+
       const duration = Number(match[1]) * units[match[2].toLowerCase()];
 
       if (duration < 10000 || duration > 30 * 86400000) {
@@ -744,10 +751,14 @@ client.on(Events.MessageCreate, async message => {
         .setColor(GW_COLOR)
         .setTitle(`${GW_EMOJI} HAOS GIVEAWAY`)
         .setDescription(
-          `${GW_NAGRADA} **NAGRADA**\n> ${prize}\n\n` +
-          `${GW_TROFEJ} **BROJ POBEDNIKA**\n> ${winnersCount}\n\n` +
-          `${GW_KRUNA} **ORGANIZATOR**\n> ${message.author}\n\n` +
-          `${GW_SAT} **ZAVRŠAVA SE**\n> <t:${Math.floor(endAt / 1000)}:R>\n\n` +
+          `${GW_NAGRADA} **NAGRADA**\n` +
+          `> ${prize}\n\n` +
+          `${GW_TROFEJ} **BROJ POBEDNIKA**\n` +
+          `> ${winnersCount}\n\n` +
+          `${GW_KRUNA} **ORGANIZATOR**\n` +
+          `> ${message.author}\n\n` +
+          `${GW_SAT} **ZAVRŠAVA SE**\n` +
+          `> <t:${Math.floor(endAt / 1000)}:R>\n\n` +
           '━━━━━━━━━━━━━━━━━━━━\n' +
           `Reaguj sa ${GW_EMOJI} da učestvuješ!`
         )
@@ -757,7 +768,12 @@ client.on(Events.MessageCreate, async message => {
       let giveawayMessage;
 
       try {
-        giveawayMessage = await message.channel.send({ embeds: [startEmbed] });
+        giveawayMessage = await message.channel.send({
+          content: '@everyone',
+          embeds: [startEmbed],
+          allowedMentions: { parse: ['everyone'] }
+        });
+
         await giveawayMessage.react(GW_EMOJI);
       } catch (error) {
         console.error('Greška pri pokretanju giveaway-a:', error);
@@ -767,7 +783,7 @@ client.on(Events.MessageCreate, async message => {
         }
 
         return message.reply(
-          '❌ Nisam uspeo da pokrenem giveaway. Proveri pristup HAOS emodžiju i dozvolu Add Reactions.'
+          '❌ Giveaway nije pokrenut. Proveri dozvole bota i pristup HAOS emodžiju.'
         );
       }
 
@@ -819,7 +835,7 @@ client.on(Events.MessageCreate, async message => {
               .setColor('#808080')
               .setTitle(`${GW_EMOJI} GIVEAWAY ZAVRŠEN`)
               .setDescription(
-                `${GW_NAGRADA} **Nagrada:** ${prize}\n\n` +
+                `${GW_NAGRADA} **NAGRADA**\n${prize}\n\n` +
                 '❌ Niko nije učestvovao, pobednik nije izvučen.'
               )
               .setFooter({ text: 'HAOS • Giveaway sistem' })
@@ -831,14 +847,16 @@ client.on(Events.MessageCreate, async message => {
 
           const shuffled = [...participants].sort(() => Math.random() - 0.5);
           const winners = shuffled.slice(0, Math.min(winnersCount, shuffled.length));
+          const winnerMentions = winners.map(user => `<@${user.id}>`).join(', ');
 
           const resultEmbed = new EmbedBuilder()
             .setColor(GW_COLOR)
             .setTitle(`${GW_EMOJI} GIVEAWAY ZAVRŠEN`)
             .setDescription(
               `${GW_TROFEJ} **POBEDNIK${winners.length > 1 ? 'CI' : ''}**\n` +
-              `${winners.map(user => `<@${user.id}>`).join(', ')}\n\n` +
-              `${GW_NAGRADA} **NAGRADA**\n${prize}\n\n` +
+              `${winnerMentions}\n\n` +
+              `${GW_NAGRADA} **NAGRADA**\n` +
+              `${prize}\n\n` +
               `${GW_KRUNA} **ČESTITAMO!**\n` +
               'Hvala svima koji su učestvovali u giveaway-u.'
             )
@@ -854,6 +872,7 @@ client.on(Events.MessageCreate, async message => {
             .setTimestamp();
 
           await message.channel.send({
+            content: `🎉 Čestitamo ${winnerMentions}!`,
             embeds: [resultEmbed],
             allowedMentions: { users: winners.map(user => user.id) }
           });
@@ -865,10 +884,10 @@ client.on(Events.MessageCreate, async message => {
 
     // RUČNO ZAVRŠAVANJE: .gend ID_PORUKE
     // NOVO IZVLAČENJE: .greroll ID_PORUKE
-    if (command === 'endgiveaway' || command === 'reroll') {
+    if (['gend', 'endgiveaway', 'greroll', 'reroll'].includes(command)) {
       if (!hasPermission(PermissionFlagsBits.ManageGuild)) return;
 
-      const isReroll = command === 'reroll';
+      const isReroll = ['greroll', 'reroll'].includes(command);
       const messageId = args[0];
 
       if (!messageId || !/^\d{17,22}$/.test(messageId)) {
@@ -952,6 +971,8 @@ client.on(Events.MessageCreate, async message => {
           });
         }
 
+        const winnerMentions = winners.map(user => `<@${user.id}>`).join(', ');
+
         const resultEmbed = new EmbedBuilder()
           .setColor(GW_COLOR)
           .setTitle(
@@ -959,8 +980,9 @@ client.on(Events.MessageCreate, async message => {
           )
           .setDescription(
             `${GW_TROFEJ} **POBEDNIK${winners.length > 1 ? 'CI' : ''}**\n` +
-            `${winners.map(user => `<@${user.id}>`).join(', ')}\n\n` +
-            `${GW_NAGRADA} **NAGRADA**\n${prize}\n\n` +
+            `${winnerMentions}\n\n` +
+            `${GW_NAGRADA} **NAGRADA**\n` +
+            `${prize}\n\n` +
             `${GW_KRUNA} **ČESTITAMO!**\n` +
             'Hvala svima koji su učestvovali u giveaway-u.'
           )
@@ -976,6 +998,7 @@ client.on(Events.MessageCreate, async message => {
           .setTimestamp();
 
         return message.channel.send({
+          content: `🎉 Čestitamo ${winnerMentions}!`,
           embeds: [resultEmbed],
           allowedMentions: { users: winners.map(user => user.id) }
         });
