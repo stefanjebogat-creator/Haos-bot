@@ -872,7 +872,7 @@ client.on(Events.MessageCreate, async message => {
             .setTimestamp();
 
           await message.channel.send({
-            content: `🎉 Čestitamo ${winnerMentions}!`,
+            content: `${GW_EMOJI} Čestitamo ${winnerMentions}!`,
             embeds: [resultEmbed],
             allowedMentions: { users: winners.map(user => user.id) }
           });
