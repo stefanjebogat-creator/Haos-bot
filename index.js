@@ -226,6 +226,55 @@ client.on(Events.MessageCreate, async message => {
     logChannel.send({ embeds: [logEmbed] }).catch(console.error);
   }
 
+if (command === 'lb' || command === 'leaderboard') {
+    try {
+      // Povlačimo sve pozivnice sa servera
+      const invites = await message.guild.invites.fetch();
+
+      if (!invites || invites.size === 0) {
+        return message.reply('❌ Trenutno nema aktivnih pozivnica na serveru.');
+      }
+
+      // Mapiramo i sabiramo pozivnice po korisniku
+      const inviteCounts = new Map();
+
+      invites.forEach(invite => {
+        if (!invite.inviter) return;
+        const count = inviteCounts.get(invite.inviter.id) || { user: invite.inviter, uses: 0 };
+        count.uses += invite.uses;
+        inviteCounts.set(invite.inviter.id, count);
+      });
+
+      // Sortiramo od najvećeg ka najmanjem broju
+      const sortedLeaderboard = Array.from(inviteCounts.values())
+        .sort((a, b) => b.uses - a.uses)
+        .slice(0, 10); // Uzimamo TOP 10
+
+      if (sortedLeaderboard.length === 0) {
+        return message.reply('❌ Nema zabeleženih iskorišćenih pozivnica.');
+      }
+
+      // Formatiramo listu sa brojevima i tačkicama
+      const formattedList = sortedLeaderboard
+        .map((entry, index) => `- **#${index + 1}** ${entry.user.tag} — \`${entry.uses}\` pozivnica`)
+        .join('\n');
+
+      const lbEmbed = new EmbedBuilder()
+        .setColor(0xFF8C00)
+        .setTitle('<:4301boom:1559281123056549888> Haos Client — Rang Lista Pozivnica')
+        .setDescription(
+          '🏆 **TOP 10 POZIVATELJA**\n\n' +
+          formattedList
+        )
+        .setTimestamp();
+
+      return message.reply({ embeds: [lbEmbed] });
+    } catch (error) {
+      console.error('Greška pri dohvatanju rang liste:', error);
+      return message.reply('❌ Došlo je do greške pri dohvatanju rang liste. Proverite da li bot ima permisiju `Manage Guild` (Upravljanje serverom).');
+    }
+  }
+  
 // .invites
 client.on('messageCreate', async (message) => {
   if (message.author.bot || !message.guild) return;
