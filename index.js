@@ -267,7 +267,7 @@ client.on(Events.MessageCreate, async message => {
     } catch {
       const errorEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
-        .setTitle('<:61048photosfolder:1558977971920838656> Haos Client — Greška')
+        .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Ne mogu pronaći navedenog korisnika.');
 
       return message.reply({ embeds: [errorEmbed] });
@@ -281,7 +281,7 @@ client.on(Events.MessageCreate, async message => {
     if (!bannerURL) {
       const noBannerEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription(`- Korisnik ${targetUser} nema postavljen baner.`);
 
       return message.reply({ embeds: [noBannerEmbed] });
@@ -289,7 +289,7 @@ client.on(Events.MessageCreate, async message => {
 
     const embed = new EmbedBuilder()
       .setColor(0xFF8C00)
-      .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Banner')
+      .setTitle('<:61048photosfolder:1558977971920838656> Haos Client — Banner')
       .setDescription(
         `- Baner korisnika: ${targetUser}\n` +
         `- [Direktan link do slike](${bannerURL})`
@@ -748,7 +748,7 @@ client.on(Events.MessageCreate, async message => {
     if (!member) {
       const usageEmbed = new EmbedBuilder()
         .setColor(0xFF8C00)
-        .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Warn')
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Warn')
         .setDescription(
           '- Pogrešna upotreba komande!\n' +
           '- Upotreba: `.warn` `[@korisnik]` `[razlog]`'
