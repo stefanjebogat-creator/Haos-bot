@@ -1191,7 +1191,6 @@ client.on(Events.MessageCreate, async message => {
     setTimeout(() => endGiveaway(gMessage.id, message.client), durationMs);
     return message.delete().catch(() => {});
   }
-
   // 2. RUČNO ZAVRŠAVANJE (.gend)
   if (command === 'gend') {
     if (!message.member.permissions.has(PermissionFlagsBits.ManageMessages)) return;
@@ -1205,30 +1204,25 @@ client.on(Events.MessageCreate, async message => {
       return message.reply({ embeds: [errEmbed] });
     }
 
-        endGiveaway(messageId, message.client);
+    endGiveaway(messageId, message.client);
     return message.delete().catch(() => {});
-  } // <-- Kraj .gend ili .greroll komande
+  } // Zatvara .gend komandu
 
-}; // <--- OVU ZAGRADU DODAJ OVDE! (Zatvara glavni client.on za komande
-    
-
-
-// ODGOVOR NA POMINJANJE BOTA
-client.on(Events.MessageCreate, async message => {
-  if (message.author.bot || !client.user) return;
-
+  // ODGOVOR NA POMINJANJE BOTA (Tagovanje)
   if (message.mentions.has(client.user) && !message.mentions.everyone) {
     const mentionEmbed = new EmbedBuilder()
       .setColor(0xFF8C00)
       .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Mention')
       .setDescription(
         `- Ćao ${message.author}, ja sam personalizovani **Client** za **Haos** balkanski server.\n` +
-        '- Koristim prefix `.`. Ukucaj `.help` za više informacija.'
+        `- Koristim prefix \`.\`. Ukucaj \`.help\` za više informacija.`
       );
 
     await message.reply({ embeds: [mentionEmbed] }).catch(() => {});
   }
-});
+
+}); // ZATVARA GLAVNI client.on(Events.MessageCreate)
+
 
 // PROVERA TOKENA I POKRETANJE
 if (!process.env.DISCORD_TOKEN) {
