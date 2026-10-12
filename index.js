@@ -729,34 +729,83 @@ client.on(Events.MessageCreate, async message => {
         'Moderator je uklonio/la utišavanje.');
     }
 
-    // WARN
-    if (command === 'warn') {
-      if (!hasPermission(PermissionFlagsBits.ModerateMembers)) return;
-      if (!target) return message.reply('Upotreba: `.warn @član [razlog]` ili `.w @član [razlog]`');
+    // WARN (.warn)
+  if (command === 'warn') {
+    // Provera dozvola za moderatora
+    if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
+      const noPermEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Nemate potrebne dozvole za opominjanje članova.');
 
-      const why = reason(args);
-      const data = loadWarnings();
-
-      data[target.id] ||= [];
-      data[target.id].push({
-        razlog: why,
-        moderator: message.author.tag,
-        datum: new Date().toISOString()
-      });
-
-      saveWarnings(data);
-
-      const sent = await dm(target.user, 'HAOS • Upozorenje',
-        `Server: **${message.guild.name}**\n**Moderator:** ${message.author.tag}\n**Razlog:** ${why}`);
-
-      return message.reply({
-        embeds: [
-          embed('Upozorenje dodato',
-            `**Član:** ${target.user.tag}\n**Razlog:** ${why}\n**Ukupno upozorenja:** ${data[target.id].length}\n` +
-            (sent ? '📩 DM je poslat.' : '⚠️ DM nije mogao biti poslat.'))
-        ]
-      });
+      return message.reply({ embeds: [noPermEmbed] });
     }
+
+    const member = message.mentions.members.first();
+    const reason = args.slice(1).join(' ') || 'Nije naveden razlog';
+
+    // Provera da li je korisnik označen
+    if (!member) {
+      const usageEmbed = new EmbedBuilder()
+        .setColor(0xFF8C00)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Warn')
+        .setDescription(
+          '- Pogrešna upotreba komande!\n' +
+          '- Upotreba: `.warn` `[@korisnik]` `[razlog]`'
+        );
+
+      return message.reply({ embeds: [usageEmbed] });
+    }
+
+    // Zaštita: Ne možeš opomenuti sebe ili bota
+    if (member.id === message.author.id) {
+      const selfWarnEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Ne možete opomenuti sami sebe.');
+
+      return message.reply({ embeds: [selfWarnEmbed] });
+    }
+
+    try {
+      // Slanje privatne poruke opomenutom korisniku (opciono)
+      const dmEmbed = new EmbedBuilder()
+        .setColor(0xFF8C00)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Opomena')
+        .setDescription(
+          `- Dobili ste opomenu na serveru **${message.guild.name}**!\n` +
+          `- **Razlog:** \`${reason}\`\n` +
+          `- **Moderator:** ${message.author.tag}`
+        )
+        .setTimestamp();
+
+      await member.send({ embeds: [dmEmbed] }).catch(() => {
+        // Ignoriše grešku ako korisnik ima ugašene Privatne Poruke (DM)
+      });
+
+      // Potvrda u kanalu gde je izvršena komanda
+      const successEmbed = new EmbedBuilder()
+        .setColor(0xFF8C00)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Warn')
+        .setDescription(
+          `- Uspešno opomenut korisnik: ${member.user}\n` +
+          `- **Razlog:** \`${reason}\`\n` +
+          `- **Moderator:** ${message.author}`
+        )
+        .setTimestamp();
+
+      return message.reply({ embeds: [successEmbed] });
+
+    } catch (error) {
+      console.error(error);
+      const errEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Došlo je do greške prilikom slanja opomene.');
+
+      return message.reply({ embeds: [errEmbed] });
+    }
+  }
 
     // PREGLED UPOZORENJA
     if (command === 'warnings') {
