@@ -306,7 +306,7 @@ client.on(Events.MessageCreate, async message => {
     if (!message.member.permissions.has(PermissionFlagsBits.ManageMessages)) {
       const noPermEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Nemate potrebne dozvole za brisanje poruka (`ManageMessages`).');
 
       return message.reply({ embeds: [noPermEmbed] });
@@ -318,7 +318,7 @@ client.on(Events.MessageCreate, async message => {
     if (isNaN(amount) || amount < 1 || amount > 100) {
       const usageEmbed = new EmbedBuilder()
         .setColor(0xFF8C00)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Purge')
+        .setTitle('<:78160deleteguild:1559152462680555660> Haos Client — Purge')
         .setDescription(
           '- Pogrešna upotreba komande!\n' +
           '- Navedite broj poruka za brisanje između **1** i **100**.\n' +
@@ -337,7 +337,7 @@ client.on(Events.MessageCreate, async message => {
 
       const successEmbed = new EmbedBuilder()
         .setColor(0xFF8C00)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Purge')
+        .setTitle('<:6728_true:1558944305283080232> Haos Client — Purge')
         .setDescription(
           `- Uspešno obrisano **${deletedMessages.size}** poruka u kanalu ${message.channel}.\n` +
           `- **Moderator:** ${message.author}`
@@ -352,13 +352,62 @@ client.on(Events.MessageCreate, async message => {
       console.error(error);
       const errEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription(
           '- Došlo je do greške prilikom brisanja poruka.\n' +
           '- **Napomena:** Discord ne dozvoljava brisanje poruka starijih od **14 dana**.'
         );
 
       return message.channel.send({ embeds: [errEmbed] });
+    }
+  }
+
+// NUKE (.nuke)
+  if (command === 'nuke') {
+    // Provera dozvola za upravljanje kanalima
+    if (!message.member.permissions.has(PermissionFlagsBits.ManageChannels)) {
+      const noPermEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Nemate potrebne dozvole za brisanje i kreiranje kanala (`ManageChannels`).');
+
+      return message.reply({ embeds: [noPermEmbed] });
+    }
+
+    try {
+      const channel = message.channel;
+      const position = channel.position;
+
+      // Klonira kanal sa istim podešavanjima, dozvolama i pozicijom
+      const newChannel = await channel.clone({
+        position: position,
+        reason: `Nuke komanda pokrenuta od strane ${message.author.tag}`
+      });
+
+      // Briše stari kanal
+      await channel.delete(`Nuke komanda pokrenuta od strane ${message.author.tag}`);
+
+      // Šalje potvrdu u novi kanal
+      const nukeEmbed = new EmbedBuilder()
+        .setColor(0xFF8C00)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Nuke')
+        .setDescription(
+          `- Ovaj kanal je uspešno očišćen (nuked)!\n` +
+          `- **Moderator:** ${message.author}`
+        )
+        .setImage('https://media.giphy.com/media/XUFPGrX5Zis6Y/giphy.gif') // Opciono: GIF eksplozije
+        .setTimestamp();
+
+      return newChannel.send({ embeds: [nukeEmbed] });
+
+    } catch (error) {
+      console.error(error);
+      const errEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Došlo je do greške prilikom čišćenja kanala.');
+
+      return message.reply({ embeds: [errEmbed] });
     }
   }
   
@@ -486,20 +535,35 @@ client.on(Events.MessageCreate, async message => {
       });
     }
 
-   // HELP
+  // HELP KOMANDA (.help)
   if (command === 'help') {
     const helpEmbed = new EmbedBuilder()
       .setColor(0xFF8C00)
       .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Komande')
       .setDescription(
-        '**Moderacija:**\n' +
-        '- `.ban` - Banovanje korisnika sa servera\n' +
-        '- `.unban` - Uklanjanje bana preko ID-ja\n\n' +
-        '**Utility & Media:**\n' +
-        '- `.ticket` - Otvaranje privatnog tiketa\n' +
-        '- `.av` - Prikaz avatara korisnika\n' +
-        '- `.banner` - Prikaz banera korisnika'
+        '- Dobrodošli u meni pomoći za **Haos Client** bot.\n' +
+        '- Pregled svih dostupnih komandi grupisanih po kategorijama:\n\n' +
+
+        '**🛡️ Moderacija & Administracija**\n' +
+        '- `.warn` `[@korisnik]` `[razlog]` — Daje opomenu korisniku\n' +
+        '- `.warnings` `[@korisnik]` — Prikazuje listu opomena za korisnika\n' +
+        '- `.purge` / `.clear` `[broj]` — Masovno briše poruke (1-100)\n' +
+        '- `.nuke` — Briše sav sadržaj i klonira trenutni kanal\n' +
+        '- `.kick` `[@korisnik]` `[razlog]` — Izbacuje korisnika sa servera\n' +
+        '- `.ban` `[@korisnik]` `[razlog]` — Banuje korisnika sa servera\n' +
+        '- `.mute` / `.timeout` `[@korisnik]` `[vreme]` — Stavlja korisnika na hlađenje\n\n' +
+
+        '**⚙️ Sistem & GitHub Integracija**\n' +
+        '- `.restart` — Povlači najnoviji kod sa GitHub-a i restartuje bota (Samo vlasnik)\n\n' +
+
+        '**💬 Opšte & Informacije**\n' +
+        '- `.help` — Prikazuje ovaj meni pomoći\n' +
+        '- `.userinfo` `[@korisnik]` — Prikazuje informacije o korisniku\n' +
+        '- `.serverinfo` — Prikazuje informacije o serveru\n' +
+        '- `.avatar` / `.av` `[@korisnik]` — Prikazuje avatar korisnika\n' +
+        '- `.banner` `[@korisnik]` — Prikazuje baner korisnika'
       )
+      .setFooter({ text: 'Haos Client • Zvanični Meni' })
       .setTimestamp();
 
     return message.reply({ embeds: [helpEmbed] });
