@@ -277,7 +277,6 @@ if (command === 'mc' || command === 'membercount') {
         `- **Server:** ${message.guild.name}\n` +
         `- **Ukupno članova:** \`${memberCount}\``
       )
-      .setFooter({ text: 'Haos Client • Statistika Servera' })
 
     return message.reply({ embeds: [mcEmbed] });
   }
@@ -344,7 +343,6 @@ if (command === 'mc' || command === 'membercount') {
           `**📜 Uloge [${member.roles.cache.size - 1}]:**\n` +
           `- ${roles}`
         )
-        .setTimestamp();
 
       return message.reply({ embeds: [userEmbed] });
 
@@ -750,7 +748,6 @@ if (command === 'mc' || command === 'membercount') {
         '- `.avatar` / `.av` `[@korisnik]` — Prikazuje avatar korisnika\n' +
         '- `.banner` `[@korisnik]` — Prikazuje baner korisnika'
       )
-      .setFooter({ text: 'Haos Client • Zvanični Meni' })
 
     return message.reply({ embeds: [helpEmbed] });
   }
