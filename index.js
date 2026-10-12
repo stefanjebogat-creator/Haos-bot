@@ -117,32 +117,36 @@ async function confirmModeration(message, user, title, description) {
 }
 
 /// STATUS BOTA (Samo pravi članovi, bez botova)
-async function updateBotStatus() {
-  if (!client.user) return;
+const STATUS = {
+  vremeIzmene: 10000, // Na koliko milisekundi se menja (10000 = 10 sekundi)
+  prikazi: [
+    { name: '.help | Pomoć', type: ActivityType.Playing },
+    () => {
+      const clanovi = client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0);
+      return { name: `👥 ${clanovi} članova`, type: ActivityType.Watching };
+    }
+  ]
+};
 
-  const guild = client.guilds.cache.first();
-  if (!guild) return;
+// =========================================================
+// KOD KOJI POKREĆE STATUS (Ovo ne moraš dirati)
+// =========================================================
+client.once('ready', () => {
+  console.log(`✅ Bot je pokrenut kao ${client.user.tag}`);
 
-  try {
-    // Povlači sve članove sa servera da bi računica bila precizna
-    const members = await guild.members.fetch();
-    
-    // Filtrira samo korisnike koji NISU botovi
-    const humanCount = members.filter(member => !member.user.bot).size;
+  let index = 0;
+  setInterval(() => {
+    const trenutni = STATUS.prikazi[index];
+    const aktivnost = typeof trenutni === 'function' ? trenutni() : trenutni;
 
     client.user.setPresence({
-      activities: [
-        {
-          name: `.help | ${humanCount.toLocaleString('en-US')} članova`,
-          type: ActivityType.Watching
-        }
-      ],
+      activities: [aktivnost],
       status: 'online'
     });
-  } catch (error) {
-    console.error('Greska pri osvezavanju statusa:', error);
-  }
-}
+
+    index = (index + 1) % STATUS.prikazi.length;
+  }, STATUS.vremeIzmene);
+});
 
 // WELCOME PORUKA
 client.on(Events.GuildMemberAdd, async member => {
