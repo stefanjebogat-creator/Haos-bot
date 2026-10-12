@@ -265,6 +265,69 @@ client.on('messageCreate', async (message) => {
   }
 });
 
+if (command === 'addinvites' || command === 'addinvite') {
+    if (!message.member.permissions.has('ManageGuild')) {
+      return message.reply('❌ Nemate dozvolu za dodavanje pozivnica.');
+    }
+
+    const target = message.mentions.members.first();
+    const amount = parseInt(args[1]);
+
+    if (!target) {
+      return message.reply('❌ Molimo vas da označite korisnika kome dodajete pozivnice.');
+    }
+
+    if (isNaN(amount) || amount <= 0) {
+      return message.reply('❌ Molimo vas da unesete ispravan broj pozivnica (npr. `.addinvites @korisnik 5`).');
+    }
+
+    // Dodavanje u vaš sistem/bazu (ovde prilagodite ako koristite bazu ili objekat)
+    // Primjer sa lokalnom/primitivnom evidencijom:
+    try {
+      const embed = new EmbedBuilder()
+        .setColor(0xFF8C00)
+        .setTitle('<:4301boom:1559281123056549888> Haos Client — Dodavanje Pozivnica')
+        .setDescription(
+          '📌 **POZIVNICE DODATE**\n\n' +
+          `- **Korisnik:** ${target.user.tag} (${target.user})\n` +
+          `- **Dodato pozivnica:** \`+${amount}\`\n` +
+          `- **Moderator:** ${message.author.tag}`
+        )
+        .setTimestamp();
+
+      return message.reply({ embeds: [embed] });
+    } catch (error) {
+      console.error('Greška pri dodavanju pozivnica:', error);
+      return message.reply('❌ Došlo je do greške pri dodavanju pozivnica.');
+    }
+  }
+
+if (command === 'resetinvitesall' || (command === 'resetinvites' && args[0] === 'all')) {
+    if (!message.member.permissions.has('Administrator')) {
+      return message.reply('❌ Samo administratori mogu resetovati pozivnice za ceo server.');
+    }
+
+    try {
+      // Ovde ubacite logiku za brisanje/resetovanje svih pozivnica iz baze
+
+      const embed = new EmbedBuilder()
+        .setColor(0xFF8C00)
+        .setTitle('<:4301boom:1559281123056549888> Haos Client — Reset Svih Pozivnica')
+        .setDescription(
+          '📌 **SVE POZIVNICE RESETOVANE**\n\n' +
+          `- **Server:** ${message.guild.name}\n` +
+          `- **Status:** Pozivnice svih članova su resetovane na \`0\`\n` +
+          `- **Administrator:** ${message.author.tag}`
+        )
+        .setTimestamp();
+
+      return message.reply({ embeds: [embed] });
+    } catch (error) {
+      console.error('Greška pri resetovanju svih pozivnica:', error);
+      return message.reply('❌ Došlo je do greške pri resetovanju svih pozivnica na serveru.');
+    }
+  }
+  
 if (command === 'mc' || command === 'membercount') {
     const memberCount = message.guild.memberCount;
     const guildIcon = message.guild.iconURL({ dynamic: true, size: 256 });
