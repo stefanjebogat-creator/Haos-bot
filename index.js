@@ -227,6 +227,30 @@ client.on(Events.MessageCreate, async message => {
     logChannel.send({ embeds: [logEmbed] }).catch(console.error);
   }
 
+// .invites
+client.on('messageCreate', async (message) => {
+  if (message.author.bot || !message.guild) return;
+
+  const args = message.content.trim().toLowerCase();
+
+  if (args === '.invites' || args === '.invite' || args === '.i') {
+    try {
+      const guildInvites = await message.guild.invites.fetch();
+      const userInvites = guildInvites.filter(i => i.inviter && i.inviter.id === message.author.id);
+      
+      let totalUses = 0;
+      userInvites.forEach(inv => {
+        totalUses += inv.uses;
+      });
+
+      return message.reply(`<:clyde:1123456789012345678> ${message.author.username}, ukupno imaš ${totalUses} pozvanih članova.`);
+    } catch (error) {
+      console.error('Greška pri preuzimanju pozivnica:', error);
+      return message.reply('Došlo je do greške. Proveri da li bot ima permisiju Upravljanje serverom.');
+    }
+  }
+});
+  
 // SERVERINFO (.serverinfo)
   if (command === 'serverinfo') {
     try {
