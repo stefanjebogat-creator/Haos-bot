@@ -231,11 +231,16 @@ client.on(Events.MessageCreate, async message => {
 client.on('messageCreate', async (message) => {
   if (message.author.bot || !message.guild) return;
 
+  // Sprenačavamo dupliranje: ako poruka počinje sa komandom, reaguje samo jednom
   const content = message.content.trim();
   const args = content.split(/\s+/);
   const command = args[0].toLowerCase();
 
   if (command === '.invites' || command === '.invite' || command === '.i') {
+    // Ako već postoji glavni handler, zaustavljamo ovaj da ne šalje duplu poruku
+    if (message._handledByMain) return;
+    message._handledByMain = true;
+
     try {
       const targetUser = message.mentions.users.first() || message.author;
 
