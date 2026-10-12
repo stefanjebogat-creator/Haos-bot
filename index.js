@@ -120,10 +120,8 @@ async function confirmModeration(message, user, title, description) {
 function updateBotStatus() {
   if (!client.user) return;
 
-  const ukupnoClanova = client.guilds.cache.reduce(
-    (ukupno, guild) => ukupno + guild.memberCount,
-    0
-  );
+ const guild = client.guilds.cache.get('1530299782738743306');
+ const ukupnoClanova = guild ? guild.memberCount : 0;
 
   client.user.setPresence({
     activities: [
