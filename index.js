@@ -300,7 +300,68 @@ client.on(Events.MessageCreate, async message => {
     return message.reply({ embeds: [embed] });
   }
 
- 
+// PURGE / CLEAR (.purge / .clear)
+  if (['purge', 'clear'].includes(command)) {
+    // Provera dozvola za brisanje poruka
+    if (!message.member.permissions.has(PermissionFlagsBits.ManageMessages)) {
+      const noPermEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Nemate potrebne dozvole za brisanje poruka (`ManageMessages`).');
+
+      return message.reply({ embeds: [noPermEmbed] });
+    }
+
+    const amount = parseInt(args[0]);
+
+    // Provera da li je broj validan i u rasponu od 1 do 100
+    if (isNaN(amount) || amount < 1 || amount > 100) {
+      const usageEmbed = new EmbedBuilder()
+        .setColor(0xFF8C00)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Purge')
+        .setDescription(
+          '- Pogrešna upotreba komande!\n' +
+          '- Navedite broj poruka za brisanje između **1** i **100**.\n' +
+          '- Upotreba: `.purge` `[broj_poruka]` ili `.clear` `[broj_poruka]`'
+        );
+
+      return message.reply({ embeds: [usageEmbed] });
+    }
+
+    try {
+      // Briše komandu koju je korisnik ukucao
+      await message.delete().catch(() => {});
+
+      // Briše zadati broj poruka
+      const deletedMessages = await message.channel.bulkDelete(amount, true);
+
+      const successEmbed = new EmbedBuilder()
+        .setColor(0xFF8C00)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Purge')
+        .setDescription(
+          `- Uspešno obrisano **${deletedMessages.size}** poruka u kanalu ${message.channel}.\n` +
+          `- **Moderator:** ${message.author}`
+        )
+        .setTimestamp();
+
+      // Šalje potvrdu i briše je automatski posle 5 sekundi
+      const replyMsg = await message.channel.send({ embeds: [successEmbed] });
+      setTimeout(() => replyMsg.delete().catch(() => {}), 5000);
+
+    } catch (error) {
+      console.error(error);
+      const errEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription(
+          '- Došlo je do greške prilikom brisanja poruka.\n' +
+          '- **Napomena:** Discord ne dozvoljava brisanje poruka starijih od **14 dana**.'
+        );
+
+      return message.channel.send({ embeds: [errEmbed] });
+    }
+  }
+  
   // OPOMENA + TIMEOUT
   if (command === 'opomena') {
     if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
