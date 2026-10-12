@@ -243,7 +243,16 @@ client.on('messageCreate', async (message) => {
         totalUses += inv.uses;
       });
 
-      return message.reply(`<:clyde:1123456789012345678> ${message.author.username}, ukupno imaš ${totalUses} pozvanih članova.`);
+      const invitesEmbed = new EmbedBuilder()
+        .setColor(0xFF8C00)
+        .setTitle('<:4301boom:1559281123056549888> Haos Client — Invites')
+        .setDescription(
+          '`-` Ukupno pozvanih članova: `' + totalUses + '`\n' +
+          '`-` **Korisnik:** ' + message.author
+        )
+        .setTimestamp();
+
+      return message.reply({ embeds: [invitesEmbed] });
     } catch (error) {
       console.error('Greška pri preuzimanju pozivnica:', error);
       return message.reply('Došlo je do greške. Proveri da li bot ima permisiju Upravljanje serverom.');
