@@ -1321,37 +1321,99 @@ if (command === 'mc' || command === 'membercount') {
 
     // MUTE
     if (command === 'mute') {
-      if (!hasPermission(PermissionFlagsBits.ModerateMembers)) return;
-      if (!target || !args[0]) {
-        return message.reply('Upotreba: `.mute @član 10m [razlog]`');
+    if (!message.member.permissions.has('ManageRoles')) {
+      return message.reply('❌ Nemate dozvolu za utišavanje članova.');
+    }
+
+    const target = message.mentions.members.first();
+    const reason = args.slice(1).join(' ') || 'Nije naveden razlog';
+
+    if (!target) {
+      return message.reply('❌ Molimo vas da označite korisnika koga želite da utišate.');
+    }
+
+    try {
+      // Traženje ili kreiranje "Muted" uloge
+      let muteRole = message.guild.roles.cache.find(role => role.name === 'Muted');
+
+      if (!muteRole) {
+        muteRole = await message.guild.roles.create({
+          name: 'Muted',
+          color: '#818386',
+          permissions: []
+        });
+
+        // Oduzimanje permisije za pisanje u svim kanalima
+        message.guild.channels.cache.forEach(async (channel) => {
+          await channel.permissionOverwrites.create(muteRole, {
+            SendMessages: false,
+            AddReactions: false,
+            Speak: false
+          });
+        });
       }
 
-      const text = args.shift();
-      const ms = durationMs(text);
+      await target.roles.add(muteRole);
 
-      if (!ms) return message.reply('Trajanje npr. `10m`, `2h` ili `7d` (najviše 7 dana).');
-      if (!target.moderatable) return message.reply('Ne mogu da utišam ovog člana.');
+      const muteEmbed = new EmbedBuilder()
+        .setColor(0xFF8C00)
+        .setTitle('<:4301boom:1559281123056549888> Haos Client — Mute')
+        .setDescription(
+          '📌 **KORISNIK UTIŠAN**\n\n' +
+          `- **Korisnik:** ${target.user.tag} (${target.user})\n` +
+          `- **Moderator:** ${message.author.tag}\n` +
+          `- **Razlog:** \`${reason}\``
+        )
+        .setFooter({ text: 'Haos Client • Moderacija' })
+        .setTimestamp();
 
-      const why = reason(args);
-      await target.timeout(ms, `${why} | Moderator: ${message.author.tag}`);
-
-      return confirmModeration(message, target.user, 'Utišavanje',
-        `${why}\nTrajanje: ${text}`);
+      return message.reply({ embeds: [muteEmbed] });
+    } catch (error) {
+      console.error('Greška pri utišavanju korisnika:', error);
+      return message.reply('❌ Došlo je do greške pri dodeljivanju Muted uloge. Proverite poziciju uloga bota.');
     }
+  }
 
     // UNMUTE
     if (command === 'unmute') {
-      if (!hasPermission(PermissionFlagsBits.ModerateMembers)) return;
-      if (!target) return message.reply('Upotreba: `.unmute @član` ili `.um @član`');
-      if (!target.moderatable) {
-        return message.reply('Ne mogu da uklonim utišavanje ovom članu.');
+    if (!message.member.permissions.has('ManageRoles')) {
+      return message.reply('❌ Nemate dozvolu za odtišavanje članova.');
+    }
+
+    const target = message.mentions.members.first();
+    const reason = args.slice(1).join(' ') || 'Nije naveden razlog';
+
+    if (!target) {
+      return message.reply('❌ Molimo vas da označite korisnika koga želite da odtišete.');
+    }
+
+    try {
+      const muteRole = message.guild.roles.cache.find(role => role.name === 'Muted');
+
+      if (!muteRole || !target.roles.cache.has(muteRole.id)) {
+        return message.reply('❌ Ovaj korisnik nije utišan (nema Muted ulogu).');
       }
 
-      await target.timeout(null, `Uklonio/la ${message.author.tag}`);
+      await target.roles.remove(muteRole);
 
-      return confirmModeration(message, target.user, 'Uklanjanje utišavanja',
-        'Moderator je uklonio/la utišavanje.');
+      const unmuteEmbed = new EmbedBuilder()
+        .setColor(0xFF8C00)
+        .setTitle('<:4301boom:1559281123056549888> Haos Client — Unmute')
+        .setDescription(
+          '📌 **KORISNIK ODTIŠAN**\n\n' +
+          `- **Korisnik:** ${target.user.tag} (${target.user})\n` +
+          `- **Moderator:** ${message.author.tag}\n` +
+          `- **Razlog:** \`${reason}\``
+        )
+        .setFooter({ text: 'Haos Client • Moderacija' })
+        .setTimestamp();
+
+      return message.reply({ embeds: [unmuteEmbed] });
+    } catch (error) {
+      console.error('Greška pri odtišavanju korisnika:', error);
+      return message.reply('❌ Došlo je do greške pri uklanjanju Muted uloge. Proverite poziciju uloga bota.');
     }
+  }
 
     // WARN (.warn)
   if (command === 'warn') {
