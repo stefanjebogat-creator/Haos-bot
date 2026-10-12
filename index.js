@@ -715,7 +715,7 @@ client.on('messageCreate', async (message) => {
   if (command === 'help' || command === 'h') {
     const helpEmbed = new EmbedBuilder()
       .setColor(0xFF8C00)
-      .setTitle('<:4301boom:1559281123056549888> Haos Client — Komande')
+      .setTitle('<:701767discordsupportscommandsbad:1559154631035199528> Haos Client — Komande')
       .setDescription(
         '• Dobrodošli u meni pomoći za **Haos Client** bot.\n' +
         '• Pregled svih dostupnih komandi grupisanih po kategorijama:\n\n' +
