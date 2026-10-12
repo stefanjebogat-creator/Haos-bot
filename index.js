@@ -454,50 +454,83 @@ client.on(Events.MessageCreate, async message => {
   }
 
 // NUKE KOMANDA (.nuke)
-  if (command === 'nuke') {
+  client.on('messageCreate', async (message) => {
+  // Ignoriši poruke od botova ili van servera
+  if (message.author.bot || !message.guild) return;
+
+  // Proveri da li je ukucano .nuke
+  if (message.content.toLowerCase() === '.nuke') {
+
+    // Provera admin dozvole za ManageChannels
     if (!message.member.permissions.has(PermissionFlagsBits.ManageChannels)) {
-      const noPermEmbed = new EmbedBuilder()
-        .setColor(0xFF0000)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
-        .setDescription('- Nemate potrebne dozvole za brisanje i ponovno kreiranje kanala.');
-      return message.reply({ embeds: [noPermEmbed] });
+      return message.reply('❌ Nemate dozvolu za upravljanje kanalima.');
     }
 
-    const currentChannel = message.channel;
-    const position = currentChannel.position;
-    const topic = currentChannel.topic;
-    const parent = currentChannel.parentId;
-    const permissionOverwrites = currentChannel.permissionOverwrites.cache;
+    // Pravljenje dugmića (Da / Otkaži)
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId('confirm_nuke')
+        .setLabel('Da, nuke!')
+        .setStyle(ButtonStyle.Danger),
+      new ButtonBuilder()
+        .setCustomId('cancel_nuke')
+        .setLabel('Otkaži')
+        .setStyle(ButtonStyle.Secondary)
+    );
 
-    try {
-      // Kreiranje novog kanala sa TAČNO ISTIM IMENOM (bez "(Nuked)")
-      const newChannel = await currentChannel.clone({
-        name: currentChannel.name,
-        topic: topic,
-        parent: parent,
-        position: position,
-        permissionOverwrites: permissionOverwrites,
-        reason: `Nuke izvršio/la ${message.author.tag}`
-      });
+    // Slanje poruke sa dugmićima u trenutni kanal
+    const response = await message.reply({
+      content: '⚠️ **Jeste li sigurni da želite da nuke-ujete ovaj kanal?**',
+      components: [row]
+    });
 
-      // Obriši stari kanal
-      await currentChannel.delete();
+    // Sakupljač klikova (traje 15 sekundi)
+    const collector = response.createMessageComponentCollector({
+      componentType: ComponentType.Button,
+      time: 15000 
+    });
 
-      // Posalji poruku u novi kanal (bez GIF-a/slike)
-      const nukeEmbed = new EmbedBuilder()
-        .setColor(0xFF8C00)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Nuke')
-        .setDescription(
-          `- Ovaj kanal je uspešno očišćen!\n` +
-          `- **Moderator:** ${message.author}`
-        )
-        .setTimestamp();
+    collector.on('collect', async (interaction) => {
+      // Dozvoli samo osobi koja je napisala .nuke da klikne
+      if (interaction.user.id !== message.author.id) {
+        return interaction.reply({ 
+          content: '❌ Samo osoba koja je pokrenula komandu može potvrditi.', 
+          ephemeral: true 
+        });
+      }
 
-      return newChannel.send({ embeds: [nukeEmbed] });
-    } catch (error) {
-      console.error('Greska pri izversavanju nuke komande:', error);
-    }
+      if (interaction.customId === 'confirm_nuke') {
+        const currentChannel = message.channel;
+
+        try {
+          // Klonira trenutni kanal i briše stari
+          const newChannel = await currentChannel.clone();
+          await currentChannel.delete();
+
+          // Slanje poruke u novostvoreni kanal
+          await newChannel.send(`💥 **Kanal je uspešno nuked!** Izvršio: ${message.author}`);
+        } catch (error) {
+          console.error('Greška pri nuke kanala:', error);
+        }
+
+      } else if (interaction.customId === 'cancel_nuke') {
+        await interaction.update({ 
+          content: '❌ Nuke je otkazan.', 
+          components: [] 
+        });
+      }
+    });
+
+    collector.on('end', collected => {
+      if (collected.size === 0) {
+        response.edit({ 
+          content: '⏱️ Vreme za potvrdu je isteklo.', 
+          components: [] 
+        }).catch(() => {});
+      }
+    });
   }
+});
   
   // OPOMENA + TIMEOUT
   if (command === 'opomena') {
