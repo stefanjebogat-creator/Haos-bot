@@ -413,7 +413,7 @@ if (command === 'mc' || command === 'membercount') {
           `- **Ukupno članova:** \`${guild.memberCount}\`\n` +
           `- **Ukupno uloga (Roles):** \`${guild.roles.cache.size}\`\n` +
           `- **Ukupno kanala:** \`${guild.channels.cache.size}\`\n` +
-          `- **Boost Nivo:** \`Level ${guild.premiumTier}\` (\`${guild.premiumSubscriptionCount || 0}\` boost-ova)`
+          `- **Boost Nivo:** \`Level ${guild.premiumTier}\` (\`${guild.premiumSubscriptionCount || 0}\` boosts)`
         )
 
       return message.reply({ embeds: [serverEmbed] });
