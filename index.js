@@ -457,7 +457,7 @@ client.on(Events.MessageCreate, async message => {
     if (!message.member.permissions.has(PermissionFlagsBits.ManageChannels)) {
       const noPermEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Nemate potrebne dozvole za brisanje i kreiranje kanala (`ManageChannels`).');
 
       return message.reply({ embeds: [noPermEmbed] });
@@ -466,7 +466,7 @@ client.on(Events.MessageCreate, async message => {
     // Embed za potvrdu
     const confirmEmbed = new EmbedBuilder()
       .setColor(0xFF8C00)
-      .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Nuke Potvrda')
+      .setTitle('<:816232alerted:1559287275119054849> Haos Client — Nuke Potvrda')
       .setDescription(
         '- Da li ste sigurni da želite obrisati i klonirati ovaj kanal?\n' +
         '- Ova akcija je trajna i obrisaće sve poruke u kanalu!'
@@ -511,12 +511,11 @@ client.on(Events.MessageCreate, async message => {
           // Poruka i slika u novom kanalu
           const nukeEmbed = new EmbedBuilder()
             .setColor(0xFF8C00)
-            .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Nuke')
+            .setTitle('<:4301boom:1559281123056549888> Haos Client — Nuke')
             .setDescription(
-              `- Ovaj kanal je uspešno očišćen (nuked)!\n` +
+              `- Ovaj kanal je uspešno očišćen !\n` +
               `- **Moderator:** ${message.author}`
             )
-            .setImage('https://media.giphy.com/media/XUFPGrX5Zis6Y/giphy.gif')
             .setTimestamp();
 
           return newChannel.send({ embeds: [nukeEmbed] });
@@ -527,7 +526,7 @@ client.on(Events.MessageCreate, async message => {
       } else if (interaction.customId === 'cancel_nuke') {
         const cancelEmbed = new EmbedBuilder()
           .setColor(0xFF0000)
-          .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Otkazano')
+          .setTitle('<:30748bannedrole:1558942653649916044> — Otkazano')
           .setDescription('- Nuke proces je uspešno otkazan.');
 
         return interaction.update({ embeds: [cancelEmbed], components: [] });
@@ -539,7 +538,7 @@ client.on(Events.MessageCreate, async message => {
       if (reason === 'time' && replyMsg.editable) {
         const timeoutEmbed = new EmbedBuilder()
           .setColor(0xFF0000)
-          .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Isteklo Vreme')
+          .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Isteklo Vreme')
           .setDescription('- Vreme za potvrdu je isteklo. Nuke je otkazan.');
 
         replyMsg.edit({ embeds: [timeoutEmbed], components: [] }).catch(() => {});
