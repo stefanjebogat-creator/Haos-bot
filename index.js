@@ -216,6 +216,84 @@ client.on(Events.MessageCreate, async message => {
     logChannel.send({ embeds: [logEmbed] }).catch(console.error);
   }
 
+// SERVERINFO (.serverinfo)
+  if (command === 'serverinfo') {
+    try {
+      const { guild } = message;
+      const owner = await guild.fetchOwner();
+
+      const serverEmbed = new EmbedBuilder()
+        .setColor(0xFF8C00)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Server Info')
+        .setThumbnail(guild.iconURL({ dynamic: true, size: 1024 }))
+        .setDescription(
+          `- **Naziv servera:** ${guild.name}\n` +
+          `- **ID Servera:** \`${guild.id}\`\n` +
+          `- **Vlasnik:** ${owner.user.tag} (${owner.user})\n` +
+          `- **Kreiran:** <t:${Math.floor(guild.createdTimestamp / 1000)}:R>\n\n` +
+
+          `**📊 Statistika:**\n` +
+          `- **Ukupno članova:** \`${guild.memberCount}\`\n` +
+          `- **Ukupno uloga (Roles):** \`${guild.roles.cache.size}\`\n` +
+          `- **Ukupno kanala:** \`${guild.channels.cache.size}\`\n` +
+          `- **Boost Nivo:** \`Level ${guild.premiumTier}\` (\`${guild.premiumSubscriptionCount || 0}\` boost-ova)`
+        )
+        .setTimestamp();
+
+      return message.reply({ embeds: [serverEmbed] });
+
+    } catch (error) {
+      console.error(error);
+      const errEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Došlo je do greške prilikom pribavljanja informacija o serveru.');
+
+      return message.reply({ embeds: [errEmbed] });
+    }
+  }
+
+// USERINFO (.userinfo)
+  if (command === 'userinfo') {
+    try {
+      const member = message.mentions.members.first() || message.member;
+      const { user } = member;
+
+      // Dobijanje uloga (bez @everyone)
+      const roles = member.roles.cache
+        .filter(r => r.id !== message.guild.id)
+        .map(r => r.toString())
+        .join(', ') || 'Nema uloga';
+
+      const userEmbed = new EmbedBuilder()
+        .setColor(0xFF8C00)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — User Info')
+        .setThumbnail(user.displayAvatarURL({ dynamic: true, size: 1024 }))
+        .setDescription(
+          `- **Korisnik:** ${user.tag} (${user})\n` +
+          `- **ID Korisnika:** \`${user.id}\`\n` +
+          `- **Nalog napravljen:** <t:${Math.floor(user.createdTimestamp / 1000)}:R>\n` +
+          `- **Pridružio se serveru:** <t:${Math.floor(member.joinedTimestamp / 1000)}:R>\n` +
+          `- **Najviša uloga:** ${member.roles.highest}\n\n` +
+
+          `**📜 Uloge [${member.roles.cache.size - 1}]:**\n` +
+          `- ${roles}`
+        )
+        .setTimestamp();
+
+      return message.reply({ embeds: [userEmbed] });
+
+    } catch (error) {
+      console.error(error);
+      const errEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Došlo je do greške prilikom pribavljanja informacija o korisniku.');
+
+      return message.reply({ embeds: [errEmbed] });
+    }
+  }
+  
  // AVATAR (.av / .avatar)
   if (['av', 'avatar'].includes(command)) {
     const member = message.mentions.users.first();
