@@ -707,11 +707,9 @@ client.on(Events.MessageCreate, async message => {
     return message.reply({ embeds: [helpEmbed] });
   }
 
-
     // ==========================================
     // HAOS GIVEAWAY SISTEM
     // ==========================================
-
     const GW_EMOJI = '<:haos_gw:1559207001735700550>';
     const GW_SAT = '<:haos_sat:1559206979170214000>';
     const GW_NAGRADA = '<:haos_nagrada:1559206996253872208>';
@@ -720,11 +718,9 @@ client.on(Events.MessageCreate, async message => {
     const GW_EMOJI_ID = '1559207001735700550';
     const GW_COLOR = '#F3994A';
 
-    // Pokretanje giveaway-a: .gstart 10m 1 Nitro
-    if (['gstart', 'giveaway'].includes(command)) {
-      if (!hasPermission(PermissionFlagsBits.ManageGuild)) {
-        return message.reply('❌ Nemaš dozvolu za pokretanje giveaway-a.');
-      }
+    // POKRETANJE: .gstart 10m 1 Nitro
+    if (command === 'giveaway') {
+      if (!hasPermission(PermissionFlagsBits.ManageGuild)) return;
 
       const durationText = args[0];
       const winnersCount = Number.parseInt(args[1], 10);
@@ -735,17 +731,11 @@ client.on(Events.MessageCreate, async message => {
         return message.reply('Upotreba: `.gstart 10m 1 Nitro`');
       }
 
-      const units = {
-        s: 1000,
-        m: 60 * 1000,
-        h: 60 * 60 * 1000,
-        d: 24 * 60 * 60 * 1000
-      };
-
+      const units = { s: 1000, m: 60000, h: 3600000, d: 86400000 };
       const duration = Number(match[1]) * units[match[2].toLowerCase()];
 
-      if (duration < 10000 || duration > 24 * 24 * 60 * 60 * 1000) {
-        return message.reply('❌ Trajanje mora biti od 10 sekundi do 24 dana.');
+      if (duration < 10000 || duration > 30 * 86400000) {
+        return message.reply('❌ Trajanje mora biti od 10 sekundi do 30 dana.');
       }
 
       const endAt = Date.now() + duration;
@@ -754,53 +744,54 @@ client.on(Events.MessageCreate, async message => {
         .setColor(GW_COLOR)
         .setTitle(`${GW_EMOJI} HAOS GIVEAWAY`)
         .setDescription(
-          `${GW_NAGRADA} **NAGRADA**\n` +
-          `> ${prize}\n\n` +
-          `${GW_TROFEJ} **BROJ POBEDNIKA**\n` +
-          `> ${winnersCount}\n\n` +
-          `${GW_KRUNA} **ORGANIZATOR**\n` +
-          `> ${message.author}\n\n` +
-          `${GW_SAT} **ZAVRŠAVA SE**\n` +
-          `> <t:${Math.floor(endAt / 1000)}:R>\n\n` +
-          `━━━━━━━━━━━━━━━━━━━━\n` +
+          `${GW_NAGRADA} **NAGRADA**\n> ${prize}\n\n` +
+          `${GW_TROFEJ} **BROJ POBEDNIKA**\n> ${winnersCount}\n\n` +
+          `${GW_KRUNA} **ORGANIZATOR**\n> ${message.author}\n\n` +
+          `${GW_SAT} **ZAVRŠAVA SE**\n> <t:${Math.floor(endAt / 1000)}:R>\n\n` +
+          '━━━━━━━━━━━━━━━━━━━━\n' +
           `Reaguj sa ${GW_EMOJI} da učestvuješ!`
         )
         .setFooter({ text: 'HAOS • Giveaway sistem' })
         .setTimestamp(new Date(endAt));
 
-      let giveawayMsg;
+      let giveawayMessage;
 
       try {
-        giveawayMsg = await message.channel.send({ embeds: [startEmbed] });
-        await giveawayMsg.react(GW_EMOJI);
+        giveawayMessage = await message.channel.send({ embeds: [startEmbed] });
+        await giveawayMessage.react(GW_EMOJI);
       } catch (error) {
         console.error('Greška pri pokretanju giveaway-a:', error);
 
-        if (giveawayMsg) {
-          await giveawayMsg.delete().catch(() => {});
+        if (giveawayMessage) {
+          await giveawayMessage.delete().catch(() => {});
         }
 
         return message.reply(
-          '❌ Nisam uspeo da pokrenem giveaway. Proveri dozvole bota i pristup HAOS emodžiju.'
+          '❌ Nisam uspeo da pokrenem giveaway. Proveri pristup HAOS emodžiju i dozvolu Add Reactions.'
         );
       }
 
-      await message.reply({
+      // POTVRDA SE BRIŠE POSLE 5 SEKUNDI
+      const confirmation = await message.reply({
         embeds: [
           new EmbedBuilder()
             .setColor(GW_COLOR)
             .setDescription(
-              `${GW_EMOJI} Giveaway je uspešno pokrenut!\n` +
+              `${GW_EMOJI} **Giveaway je uspešno pokrenut!**\n` +
               `${GW_NAGRADA} **Nagrada:** ${prize}\n` +
-              `🔗 [Otvori giveaway](${giveawayMsg.url})`
+              `🔗 [Otvori giveaway](${giveawayMessage.url})`
             )
         ]
       });
 
-      // Automatsko završavanje
+      setTimeout(() => {
+        confirmation.delete().catch(() => {});
+      }, 5000);
+
+      // AUTOMATSKO ZAVRŠAVANJE
       setTimeout(async () => {
         try {
-          const freshMessage = await message.channel.messages.fetch(giveawayMsg.id);
+          const freshMessage = await message.channel.messages.fetch(giveawayMessage.id);
           const currentEmbed = freshMessage.embeds[0];
 
           if (!currentEmbed || currentEmbed.footer?.text === 'GIVEAWAY ZAVRŠEN') {
@@ -815,11 +806,13 @@ client.on(Events.MessageCreate, async message => {
             participants = [...users.values()].filter(user => !user.bot);
           }
 
-          const endedEmbed = EmbedBuilder.from(currentEmbed)
-            .setColor('#808080')
-            .setFooter({ text: 'GIVEAWAY ZAVRŠEN' });
-
-          await freshMessage.edit({ embeds: [endedEmbed] });
+          await freshMessage.edit({
+            embeds: [
+              EmbedBuilder.from(currentEmbed)
+                .setColor('#808080')
+                .setFooter({ text: 'GIVEAWAY ZAVRŠEN' })
+            ]
+          });
 
           if (participants.length === 0) {
             const noWinnerEmbed = new EmbedBuilder()
@@ -827,12 +820,13 @@ client.on(Events.MessageCreate, async message => {
               .setTitle(`${GW_EMOJI} GIVEAWAY ZAVRŠEN`)
               .setDescription(
                 `${GW_NAGRADA} **Nagrada:** ${prize}\n\n` +
-                '❌ Niko nije učestvovao, tako da pobednik nije izvučen.'
+                '❌ Niko nije učestvovao, pobednik nije izvučen.'
               )
               .setFooter({ text: 'HAOS • Giveaway sistem' })
               .setTimestamp();
 
-            return message.channel.send({ embeds: [noWinnerEmbed] });
+            await message.channel.send({ embeds: [noWinnerEmbed] });
+            return;
           }
 
           const shuffled = [...participants].sort(() => Math.random() - 0.5);
@@ -844,8 +838,7 @@ client.on(Events.MessageCreate, async message => {
             .setDescription(
               `${GW_TROFEJ} **POBEDNIK${winners.length > 1 ? 'CI' : ''}**\n` +
               `${winners.map(user => `<@${user.id}>`).join(', ')}\n\n` +
-              `${GW_NAGRADA} **NAGRADA**\n` +
-              `${prize}\n\n` +
+              `${GW_NAGRADA} **NAGRADA**\n${prize}\n\n` +
               `${GW_KRUNA} **ČESTITAMO!**\n` +
               'Hvala svima koji su učestvovali u giveaway-u.'
             )
@@ -862,9 +855,7 @@ client.on(Events.MessageCreate, async message => {
 
           await message.channel.send({
             embeds: [resultEmbed],
-            allowedMentions: {
-              users: winners.map(user => user.id)
-            }
+            allowedMentions: { users: winners.map(user => user.id) }
           });
         } catch (error) {
           console.error('Automatsko završavanje giveaway-a:', error);
@@ -872,16 +863,12 @@ client.on(Events.MessageCreate, async message => {
       }, duration);
     }
 
-    // Ručno završavanje: .gend ID_PORUKE
-    // Ponovno izvlačenje: .greroll ID_PORUKE
-    if (
-      ['gend', 'endgiveaway', 'greroll', 'reroll'].includes(command)
-    ) {
-      if (!hasPermission(PermissionFlagsBits.ManageGuild)) {
-        return message.reply('❌ Nemaš dozvolu za upravljanje giveaway-ima.');
-      }
+    // RUČNO ZAVRŠAVANJE: .gend ID_PORUKE
+    // NOVO IZVLAČENJE: .greroll ID_PORUKE
+    if (command === 'endgiveaway' || command === 'reroll') {
+      if (!hasPermission(PermissionFlagsBits.ManageGuild)) return;
 
-      const isReroll = ['greroll', 'reroll'].includes(command);
+      const isReroll = command === 'reroll';
       const messageId = args[0];
 
       if (!messageId || !/^\d{17,22}$/.test(messageId)) {
@@ -898,13 +885,17 @@ client.on(Events.MessageCreate, async message => {
           giveawayMsg.author.id !== client.user.id ||
           !originalEmbed?.title?.includes('GIVEAWAY')
         ) {
-          return message.reply('❌ Nisam pronašao giveaway poruku ovog bota u ovom kanalu.');
+          return message.reply(
+            '❌ Nisam pronašao giveaway poruku ovog bota u ovom kanalu.'
+          );
         }
 
         const isEnded = originalEmbed.footer?.text === 'GIVEAWAY ZAVRŠEN';
 
         if (isReroll && !isEnded) {
-          return message.reply('❌ Prvo završi giveaway komandom `.gend ID_PORUKE`.');
+          return message.reply(
+            '❌ Prvo završi giveaway komandom `.gend ID_PORUKE`.'
+          );
         }
 
         if (!isReroll && isEnded) {
@@ -914,7 +905,9 @@ client.on(Events.MessageCreate, async message => {
         const reaction = giveawayMsg.reactions.cache.get(GW_EMOJI_ID);
 
         if (!reaction) {
-          return message.reply('❌ Na giveaway poruci nije pronađena HAOS reakcija.');
+          return message.reply(
+            '❌ Na giveaway poruci nije pronađena HAOS reakcija.'
+          );
         }
 
         const users = await reaction.users.fetch();
@@ -935,9 +928,12 @@ client.on(Events.MessageCreate, async message => {
         }
 
         const description = originalEmbed.description || '';
-        const prizeMatch = description.match(/(?:NAGRADA|Nagrada)\*\*\s*\n?>?\s*(.+)/);
+        const prizeMatch = description.match(/\*\*NAGRADA\*\*\s*\n>\s*(.+)/i);
         const prize = prizeMatch?.[1]?.trim() || 'Giveaway nagrada';
-        const countMatch = description.match(/BROJ POBEDNIKA\*\*\s*\n?>?\s*(\d+)/i);
+
+        const countMatch = description.match(
+          /\*\*BROJ POBEDNIKA\*\*\s*\n>\s*(\d+)/i
+        );
         const winnersCount = Math.max(1, Number(countMatch?.[1] || 1));
 
         const shuffled = [...participants].sort(() => Math.random() - 0.5);
@@ -964,8 +960,7 @@ client.on(Events.MessageCreate, async message => {
           .setDescription(
             `${GW_TROFEJ} **POBEDNIK${winners.length > 1 ? 'CI' : ''}**\n` +
             `${winners.map(user => `<@${user.id}>`).join(', ')}\n\n` +
-            `${GW_NAGRADA} **NAGRADA**\n` +
-            `${prize}\n\n` +
+            `${GW_NAGRADA} **NAGRADA**\n${prize}\n\n` +
             `${GW_KRUNA} **ČESTITAMO!**\n` +
             'Hvala svima koji su učestvovali u giveaway-u.'
           )
@@ -982,12 +977,11 @@ client.on(Events.MessageCreate, async message => {
 
         return message.channel.send({
           embeds: [resultEmbed],
-          allowedMentions: {
-            users: winners.map(user => user.id)
-          }
+          allowedMentions: { users: winners.map(user => user.id) }
         });
       } catch (error) {
         console.error('Greška u giveaway komandi:', error);
+
         return message.reply(
           '❌ Nisam uspeo da pronađem poruku. Proveri ID poruke, kanal i dozvole bota.'
         );
