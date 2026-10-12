@@ -715,25 +715,27 @@ client.on('messageCreate', async (message) => {
   if (command === 'help' || command === 'h') {
     const helpEmbed = new EmbedBuilder()
       .setColor(0xFF8C00)
-      .setTitle('<:4301boom:1559281123056549888> Haos Client — Meni Pomoći')
-      .addFields(
-        { 
-          name: '🛡️ Moderacija', 
-          value: '`.warn` `.warnings` `.purge` `.nuke` `.kick` `.ban` `.mute`', 
-          inline: false 
-        },
-        { 
-          name: '💬 Informacije & Utility', 
-          value: '`.i` / `.invites` `[@korisnik]` — Prikaz pozivnica\n`.av` / `.avatar` `[@korisnik]` — Prikaz avatara\n`.banner` `[@korisnik]` — Prikaz banera\n`.userinfo` `.serverinfo` `.help`', 
-          inline: false 
-        },
-        { 
-          name: '⚙️ Sistem', 
-          value: '`.restart` — Restart bota (Vlasnik)', 
-          inline: false 
-        }
+      .setTitle('<:4301boom:1559281123056549888> Haos Client — Komande')
+      .setDescription(
+        '• Dobrodošli u meni pomoći za **Haos Client** bot.\n' +
+        '• Pregled svih dostupnih komandi grupisanih po kategorijama:\n\n' +
+        '🛡️ **Moderacija & Administracija**\n' +
+        '• `.warn` `[@korisnik]` `[razlog]` — Daje opomenu korisniku\n' +
+        '• `.warnings` `[@korisnik]` — Prikazuje listu opomena za korisnika\n' +
+        '• `.purge` / `.clear` `[broj]` — Masovno briše poruke (1-100)\n' +
+        '• `.nuke` — Briše sav sadržaj i klonira trenutni kanal\n' +
+        '• `.kick` `[@korisnik]` `[razlog]` — Izbacuje korisnika sa servera\n' +
+        '• `.ban` `[@korisnik]` `[razlog]` — Banuje korisnika sa servera\n' +
+        '• `.mute` / `.timeout` `[@korisnik]` `[vreme]` — Stavlja korisnika na hlađenje\n\n' +
+        '💬 **Opšte & Informacije**\n' +
+        '• `.help` — Prikazuje ovaj meni pomoći\n' +
+        '• `.invites` / `.invite` / `.i` `[@korisnik]` — Prikazuje broj pozivnica korisnika\n' +
+        '• `.userinfo` `[@korisnik]` — Prikazuje informacije o korisniku\n' +
+        '• `.serverinfo` — Prikazuje informacije o serveru\n' +
+        '• `.avatar` / `.av` `[@korisnik]` — Prikazuje avatar korisnika\n' +
+        '• `.banner` `[@korisnik]` — Prikazuje baner korisnika'
       )
-      .setFooter({ text: 'Haos Client • Kompaktni Meni' })
+      .setFooter({ text: 'Haos Client • Zvanični Meni' })
       .setTimestamp();
 
     return message.reply({ embeds: [helpEmbed] });
