@@ -1205,7 +1205,11 @@ client.on(Events.MessageCreate, async message => {
       return message.reply({ embeds: [errEmbed] });
     }
 
-    endGiveaway(messageId, message.client);
+        endGiveaway(messageId, message.client);
+    return message.delete().catch(() => {});
+  } // <-- Kraj .gend ili .greroll komande
+
+}; // <--- OVU ZAGRADU DODAJ OVDE! (Zatvara glavni client.on za komande
     
 
 
