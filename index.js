@@ -266,6 +266,20 @@ client.on('messageCreate', async (message) => {
     }
   }
 });
+
+// .mc
+  if (command === 'mc' || command === 'membercount') {
+    const memberCount = message.guild.memberCount;
+
+    const mcEmbed = new EmbedBuilder()
+      .setColor(0xFF8C00)
+      .setTitle('<:4301boom:1559281123056549888> Haos Client — Server Membercount')
+      .setDescription(`📌 **BROJ ČLANOVA**\n\n• Trenutni broj članova na serveru **${message.guild.name}** iznosi: \`${memberCount}\``)
+      .setFooter({ text: 'Haos Client • Statistika Servera' })
+      .setTimestamp();
+
+    return message.reply({ embeds: [mcEmbed] });
+  }
   
 // SERVERINFO (.serverinfo)
   if (command === 'serverinfo') {
