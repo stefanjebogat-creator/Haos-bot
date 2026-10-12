@@ -117,22 +117,33 @@ async function confirmModeration(message, user, title, description) {
 }
 
 // STATUS BOTA
-function updateBotStatus(guild) {
-  if (!guild || !client.user) return;
+function updateBotStatus() {
+  if (!client.user) return;
+
+  // Izračunava ukupan broj članova sa svih servera
+  const totalMembers = client.guilds.cache
+    .reduce((acc, guild) => acc + guild.memberCount, 0)
+    .toLocaleString('en-US');
 
   client.user.setPresence({
-    activities: [{
-      name: `/haos ${guild.memberCount.toLocaleString('en-US')} members`,
-      type: ActivityType.Watching
-    }],
+    activities: [
+      {
+        name: `.help | ${totalMembers} članova`,
+        type: ActivityType.Watching
+      }
+    ],
     status: 'online'
   });
 }
 
 client.once(Events.ClientReady, bot => {
   console.log(`Bot je online: ${bot.user.tag}`);
-  const guild = bot.guilds.cache.first();
-  if (guild) updateBotStatus(guild);
+
+  // Postavlja status odmah pri paljenju
+  updateBotStatus();
+
+  // Osvežava broj članova na svakih 10 minuta
+  setInterval(updateBotStatus, 10 * 60 * 1000);
 });
 
 // WELCOME PORUKA
