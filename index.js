@@ -231,9 +231,9 @@ client.on(Events.MessageCreate, async message => {
 client.on('messageCreate', async (message) => {
   if (message.author.bot || !message.guild) return;
 
-  const args = message.content.trim().toLowerCase();
+  const cmd = message.content.trim().toLowerCase();
 
-  if (args === '.invites' || args === '.invite' || args === '.i') {
+  if (cmd === '.invites' || cmd === '.invite' || cmd === '.i') {
     try {
       const guildInvites = await message.guild.invites.fetch();
       const userInvites = guildInvites.filter(i => i.inviter && i.inviter.id === message.author.id);
@@ -248,7 +248,7 @@ client.on('messageCreate', async (message) => {
         .setTitle('<:4301boom:1559281123056549888> Haos Client — Invites')
         .setDescription(
           '`-` Ukupno pozvanih članova: `' + totalUses + '`\n' +
-          '`-` **Korisnik:** ' + message.author
+          '`-` **Korisnik:** <@' + message.author.id + '>'
         )
         .setTimestamp();
 
