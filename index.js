@@ -276,7 +276,6 @@ if (command === 'mc' || command === 'membercount') {
       .setTitle('<:haostop:1559305680848949288> Haos Client — Membercount')
       .setThumbnail(guildIcon)
       .setDescription(
-        ' **STATISTIKA SERVERA**\n\n' +
         `- **Server:** ${message.guild.name}\n` +
         `- **Ukupno članova:** \`${memberCount}\``
       )
