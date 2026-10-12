@@ -401,7 +401,7 @@ if (command === 'mc' || command === 'membercount') {
 
       const serverEmbed = new EmbedBuilder()
         .setColor(0xFF8C00)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Server Info')
+        .setTitle('<:46005info11:1559323801387401336> Haos Client — Server Info')
         .setThumbnail(guild.iconURL({ dynamic: true, size: 1024 }))
         .setDescription(
           `- **Naziv servera:** ${guild.name}\n` +
@@ -443,7 +443,7 @@ if (command === 'mc' || command === 'membercount') {
 
       const userEmbed = new EmbedBuilder()
         .setColor(0xFF8C00)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — User Info')
+        .setTitle('<:46005info11:1559323801387401336> Haos Client — User Info')
         .setThumbnail(user.displayAvatarURL({ dynamic: true, size: 1024 }))
         .setDescription(
           `- **Korisnik:** ${user.tag} (${user})\n` +
