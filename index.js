@@ -374,41 +374,88 @@ client.on(Events.MessageCreate, async message => {
       return message.reply({ embeds: [noPermEmbed] });
     }
 
-    try {
-      const channel = message.channel;
-      const position = channel.position;
+    // Embed za potvrdu
+    const confirmEmbed = new EmbedBuilder()
+      .setColor(0xFF8C00)
+      .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Nuke Potvrda')
+      .setDescription(
+        '- Da li ste sigurni da želite obrisati i klonirati ovaj kanal?\n' +
+        '- Ova akcija je trajna i obrisaće sve poruke u kanalu!'
+      );
 
-      // Klonira kanal sa istim podešavanjima, dozvolama i pozicijom
-      const newChannel = await channel.clone({
-        position: position,
-        reason: `Nuke komanda pokrenuta od strane ${message.author.tag}`
-      });
+    // Kreiranje dugmića
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId('confirm_nuke')
+        .setLabel('Potvrdi Nuke')
+        .setStyle(ButtonStyle.Danger),
+      new ButtonBuilder()
+        .setCustomId('cancel_nuke')
+        .setLabel('Otkaži')
+        .setStyle(ButtonStyle.Secondary)
+    );
 
-      // Briše stari kanal
-      await channel.delete(`Nuke komanda pokrenuta od strane ${message.author.tag}`);
+    const replyMsg = await message.reply({ embeds: [confirmEmbed], components: [row] });
 
-      // Šalje potvrdu u novi kanal
-      const nukeEmbed = new EmbedBuilder()
-        .setColor(0xFF8C00)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Nuke')
-        .setDescription(
-          `- Ovaj kanal je uspešno očišćen (nuked)!\n` +
-          `- **Moderator:** ${message.author}`
-        )
-        .setImage('https://media.giphy.com/media/XUFPGrX5Zis6Y/giphy.gif') // Opciono: GIF eksplozije
-        .setTimestamp();
+    // Sakupljač klikova na dugmad (traje 30 sekundi)
+    const filter = (interaction) => interaction.user.id === message.author.id;
+    const collector = replyMsg.createMessageComponentCollector({ filter, time: 30000, max: 1 });
 
-      return newChannel.send({ embeds: [nukeEmbed] });
+    collector.on('collect', async (interaction) => {
+      if (interaction.customId === 'confirm_nuke') {
+        try {
+          const channel = message.channel;
+          const position = channel.position;
 
-    } catch (error) {
-      console.error(error);
-      const errEmbed = new EmbedBuilder()
-        .setColor(0xFF0000)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
-        .setDescription('- Došlo je do greške prilikom čišćenja kanala.');
+          // Odgovara interakciji da ne izbaci error
+          await interaction.reply({ content: '- Kanal se nukuje...', ephemeral: true });
 
-      return message.reply({ embeds: [errEmbed] });
-    }
+          // Klonira kanal sa istim podešavanjima
+          const newChannel = await channel.clone({
+            position: position,
+            reason: `Nuke komanda potvrdjena od strane ${message.author.tag}`
+          });
+
+          // Briše stari kanal
+          await channel.delete(`Nuke komanda potvrdjena od strane ${message.author.tag}`);
+
+          // Poruka i slika u novom kanalu
+          const nukeEmbed = new EmbedBuilder()
+            .setColor(0xFF8C00)
+            .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Nuke')
+            .setDescription(
+              `- Ovaj kanal je uspešno očišćen (nuked)!\n` +
+              `- **Moderator:** ${message.author}`
+            )
+            .setImage('https://media.giphy.com/media/XUFPGrX5Zis6Y/giphy.gif')
+            .setTimestamp();
+
+          return newChannel.send({ embeds: [nukeEmbed] });
+
+        } catch (error) {
+          console.error(error);
+        }
+      } else if (interaction.customId === 'cancel_nuke') {
+        const cancelEmbed = new EmbedBuilder()
+          .setColor(0xFF0000)
+          .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Otkazano')
+          .setDescription('- Nuke proces je uspešno otkazan.');
+
+        return interaction.update({ embeds: [cancelEmbed], components: [] });
+      }
+    });
+
+    collector.on('end', (collected, reason) => {
+      // Ako niko nije kliknuo na vreme
+      if (reason === 'time' && replyMsg.editable) {
+        const timeoutEmbed = new EmbedBuilder()
+          .setColor(0xFF0000)
+          .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Isteklo Vreme')
+          .setDescription('- Vreme za potvrdu je isteklo. Nuke je otkazan.');
+
+        replyMsg.edit({ embeds: [timeoutEmbed], components: [] }).catch(() => {});
+      }
+    });
   }
   
   // OPOMENA + TIMEOUT
@@ -539,7 +586,7 @@ client.on(Events.MessageCreate, async message => {
   if (command === 'help') {
     const helpEmbed = new EmbedBuilder()
       .setColor(0xFF8C00)
-      .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Komande')
+      .setTitle('<:701767discordsupportscommandsbad:1559154631035199528> Haos Client — Komande')
       .setDescription(
         '- Dobrodošli u meni pomoći za **Haos Client** bot.\n' +
         '- Pregled svih dostupnih komandi grupisanih po kategorijama:\n\n' +
