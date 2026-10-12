@@ -747,7 +747,7 @@ if (command === 'giveaway') {
     embeds: [giveawayEmbed]
   });
 
-  await giveawayMessage.react('🎉');
+  await giveawayMessage.react('<:haos_gw:1559207001735700550>');
 
   message.reply(`Giveaway je pokrenut: ${giveawayMessage.url}`);
 }
