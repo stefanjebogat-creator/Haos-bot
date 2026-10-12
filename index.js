@@ -249,7 +249,7 @@ client.on('messageCreate', async (message) => {
 
       const invitesEmbed = new EmbedBuilder()
         .setColor(0xFF8C00)
-        .setTitle('<:4301boom:1559281123056549888> Haos Client — Invites')
+        .setTitle('<:9437invite:1559292509719502938> Haos Client — Invites')
         .setThumbnail(targetUser.displayAvatarURL({ dynamic: true, size: 256 }))
         .setDescription(`- Ukupno pozvanih članova: \`${totalUses}\`\n- **Korisnik:** <@${targetUser.id}>`)
         .setTimestamp();
