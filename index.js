@@ -247,8 +247,8 @@ client.on('messageCreate', async (message) => {
         .setColor(0xFF8C00)
         .setTitle('<:9437invite:1559292509719502938> Haos Client — Invites')
         .setDescription(
-          '`-` Ukupno pozvanih članova: `' + totalUses + '`\n' +
-          '`-` **Korisnik:** <@' + message.author.id + '>'
+          `- Ukupno pozvanih članova: `' + totalUses + '`\n' +
+          `- **Korisnik:** <@' + message.author.id + '>'
         )
         .setTimestamp();
 
