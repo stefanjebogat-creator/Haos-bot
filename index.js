@@ -116,36 +116,34 @@ async function confirmModeration(message, user, title, description) {
   );
 }
 
-/// STATUS BOTA (Samo pravi članovi, bez botova)
-const STATUS = {
-  vremeIzmene: 10000, // Na koliko milisekundi se menja (10000 = 10 sekundi)
-  prikazi: [
-    { name: '.help | Pomoć', type: ActivityType.Playing },
-    () => {
-      const clanovi = client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0);
-      return { name: `👥 ${clanovi} članova`, type: ActivityType.Watching };
-    }
-  ]
-};
+// STATUS BOTA
+function updateBotStatus() {
+  if (!client.user) return;
 
-// =========================================================
-// KOD KOJI POKREĆE STATUS (Ovo ne moraš dirati)
-// =========================================================
-client.once('ready', () => {
-  console.log(`✅ Bot je pokrenut kao ${client.user.tag}`);
+  // Izračunava ukupan broj članova sa svih servera
+  const totalMembers = client.guilds.cache
+    .reduce((acc, guild) => acc + guild.memberCount, 0)
+    .toLocaleString('en-US');
 
-  let index = 0;
-  setInterval(() => {
-    const trenutni = STATUS.prikazi[index];
-    const aktivnost = typeof trenutni === 'function' ? trenutni() : trenutni;
+  client.user.setPresence({
+    activities: [
+      {
+        name: `.help | ${totalMembers} članova`,
+        type: ActivityType.Watching
+      }
+    ],
+    status: 'online'
+  });
+}
 
-    client.user.setPresence({
-      activities: [aktivnost],
-      status: 'online'
-    });
+client.once(Events.ClientReady, bot => {
+  console.log(`Bot je online: ${bot.user.tag}`);
 
-    index = (index + 1) % STATUS.prikazi.length;
-  }, STATUS.vremeIzmene);
+  // Postavlja status odmah pri paljenju
+  updateBotStatus();
+
+  // Osvežava broj članova na svakih 10 minuta
+  setInterval(updateBotStatus, 10 * 60 * 1000);
 });
 
 // WELCOME PORUKA
@@ -453,24 +451,32 @@ client.on(Events.MessageCreate, async message => {
     }
   }
 
-// NUKE KOMANDA (.nuke)
-  client.on('messageCreate', async (message) => {
-  // Ignoriši poruke od botova ili van servera
-  if (message.author.bot || !message.guild) return;
-
-  // Proveri da li je ukucano .nuke
-  if (message.content.toLowerCase() === '.nuke') {
-
-    // Provera admin dozvole za ManageChannels
+// NUKE (.nuke)
+  if (command === 'nuke') {
+    // Provera dozvola za upravljanje kanalima
     if (!message.member.permissions.has(PermissionFlagsBits.ManageChannels)) {
-      return message.reply('❌ Nemate dozvolu za upravljanje kanalima.');
+      const noPermEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Nemate potrebne dozvole za brisanje i kreiranje kanala (`ManageChannels`).');
+
+      return message.reply({ embeds: [noPermEmbed] });
     }
 
-    // Pravljenje dugmića (Da / Otkaži)
+    // Embed za potvrdu
+    const confirmEmbed = new EmbedBuilder()
+      .setColor(0xFF8C00)
+      .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Nuke Potvrda')
+      .setDescription(
+        '- Da li ste sigurni da želite obrisati i klonirati ovaj kanal?\n' +
+        '- Ova akcija je trajna i obrisaće sve poruke u kanalu!'
+      );
+
+    // Kreiranje dugmića
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId('confirm_nuke')
-        .setLabel('Da, nuke!')
+        .setLabel('Potvrdi Nuke')
         .setStyle(ButtonStyle.Danger),
       new ButtonBuilder()
         .setCustomId('cancel_nuke')
@@ -478,59 +484,68 @@ client.on(Events.MessageCreate, async message => {
         .setStyle(ButtonStyle.Secondary)
     );
 
-    // Slanje poruke sa dugmićima u trenutni kanal
-    const response = await message.reply({
-      content: '⚠️ **Jeste li sigurni da želite da nuke-ujete ovaj kanal?**',
-      components: [row]
-    });
+    const replyMsg = await message.reply({ embeds: [confirmEmbed], components: [row] });
 
-    // Sakupljač klikova (traje 15 sekundi)
-    const collector = response.createMessageComponentCollector({
-      componentType: ComponentType.Button,
-      time: 15000 
-    });
+    // Sakupljač klikova na dugmad (traje 30 sekundi)
+    const filter = (interaction) => interaction.user.id === message.author.id;
+    const collector = replyMsg.createMessageComponentCollector({ filter, time: 30000, max: 1 });
 
     collector.on('collect', async (interaction) => {
-      // Dozvoli samo osobi koja je napisala .nuke da klikne
-      if (interaction.user.id !== message.author.id) {
-        return interaction.reply({ 
-          content: '❌ Samo osoba koja je pokrenula komandu može potvrditi.', 
-          ephemeral: true 
-        });
-      }
-
       if (interaction.customId === 'confirm_nuke') {
-        const currentChannel = message.channel;
-
         try {
-          // Klonira trenutni kanal i briše stari
-          const newChannel = await currentChannel.clone();
-          await currentChannel.delete();
+          const channel = message.channel;
+          const position = channel.position;
 
-          // Slanje poruke u novostvoreni kanal
-          await newChannel.send(`💥 **Kanal je uspešno nuked!** Izvršio: ${message.author}`);
+          // Odgovara interakciji da ne izbaci error
+          await interaction.reply({ content: '- Kanal se nukuje...', ephemeral: true });
+
+          // Klonira kanal sa istim podešavanjima
+          const newChannel = await channel.clone({
+            position: position,
+            reason: `Nuke komanda potvrdjena od strane ${message.author.tag}`
+          });
+
+          // Briše stari kanal
+          await channel.delete(`Nuke komanda potvrdjena od strane ${message.author.tag}`);
+
+          // Poruka i slika u novom kanalu
+          const nukeEmbed = new EmbedBuilder()
+            .setColor(0xFF8C00)
+            .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Nuke')
+            .setDescription(
+              `- Ovaj kanal je uspešno očišćen (nuked)!\n` +
+              `- **Moderator:** ${message.author}`
+            )
+            .setImage('https://media.giphy.com/media/XUFPGrX5Zis6Y/giphy.gif')
+            .setTimestamp();
+
+          return newChannel.send({ embeds: [nukeEmbed] });
+
         } catch (error) {
-          console.error('Greška pri nuke kanala:', error);
+          console.error(error);
         }
-
       } else if (interaction.customId === 'cancel_nuke') {
-        await interaction.update({ 
-          content: '❌ Nuke je otkazan.', 
-          components: [] 
-        });
+        const cancelEmbed = new EmbedBuilder()
+          .setColor(0xFF0000)
+          .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Otkazano')
+          .setDescription('- Nuke proces je uspešno otkazan.');
+
+        return interaction.update({ embeds: [cancelEmbed], components: [] });
       }
     });
 
-    collector.on('end', collected => {
-      if (collected.size === 0) {
-        response.edit({ 
-          content: '⏱️ Vreme za potvrdu je isteklo.', 
-          components: [] 
-        }).catch(() => {});
+    collector.on('end', (collected, reason) => {
+      // Ako niko nije kliknuo na vreme
+      if (reason === 'time' && replyMsg.editable) {
+        const timeoutEmbed = new EmbedBuilder()
+          .setColor(0xFF0000)
+          .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Isteklo Vreme')
+          .setDescription('- Vreme za potvrdu je isteklo. Nuke je otkazan.');
+
+        replyMsg.edit({ embeds: [timeoutEmbed], components: [] }).catch(() => {});
       }
     });
   }
-});
   
   // OPOMENA + TIMEOUT
   if (command === 'opomena') {
