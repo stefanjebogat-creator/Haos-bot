@@ -737,7 +737,7 @@ if (command === 'giveaway') {
     `${'<:haos_nagrada:1559206996253872208>'} **Nagrada:** ${prize}\n` +
     `${'<:haos_trofej:1559206993003028561>'} **Broj pobednika:** ${winnersCount}\n` +
     `${'<:haos_kruna:1559206986527285288>'} **Organizator:** ${message.author}\n` +
-    `${'<:haos_sat:1559206979170214000>'} **Završava se:** <t:${Math.floor((endDate.getTime()) / 1000)}:R>\n\n` +
+    `<:haos_sat:1559206979170214000> **Završava se:** <t:${Math.floor(endAt / 1000)}:R>\n\n` +
     `Reaguj sa <:haos_gw:1559207001735700550> da učestvuješ!`
   )
   .setTimestamp(endDate);
