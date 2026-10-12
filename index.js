@@ -642,7 +642,6 @@ client.on(Events.MessageCreate, async message => {
     return false;
   };
 
-  try {
     // TICKET PANEL — STAFF PRIJAVE
     if (command === 'ticketsetup') {
       if (!hasPermission(PermissionFlagsBits.ManageGuild)) return;
