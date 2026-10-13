@@ -1419,7 +1419,7 @@ if (command === 'mc' || command === 'membercount') {
 
     // MUTE KOMANDA (.mute / .timeout)
   if (['mute', 'timeout'].includes(command)) {
-    // 1. Provjera da li moderator ima dozvolu za timeout
+    // 1. Provera da li moderator ima dozvolu
     if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
       const noPermEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
@@ -1449,7 +1449,7 @@ if (command === 'mc' || command === 'membercount') {
       return message.reply({ embeds: [selfEmbed] });
     }
 
-    // 3. Provjera hijerarhije uloga (Ne može se mjutati neko ko ima istu ili veću ulogu od tebe)
+    // 3. Provera hijerarhije uloga
     if (target.roles.highest.position >= message.member.roles.highest.position && message.guild.ownerId !== message.author.id) {
       const roleEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
@@ -1458,7 +1458,7 @@ if (command === 'mc' || command === 'membercount') {
       return message.reply({ embeds: [roleEmbed] });
     }
 
-    // 4. Provjera da li je član koji se mjutira moderabilan od strane bota
+    // 4. Provera da li bot ima dovoljnu ulogu
     if (!target.moderatable) {
       const botRoleEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
@@ -1475,7 +1475,7 @@ if (command === 'mc' || command === 'membercount') {
       return message.reply({ embeds: [noTimeEmbed] });
     }
 
-    // Konverzija vremena (minuti, sati, dani)
+    // Konverzija vremena
     let durationMs = 0;
     if (durationInput.endsWith('m')) durationMs = parseInt(durationInput) * 60 * 1000;
     else if (durationInput.endsWith('h')) durationMs = parseInt(durationInput) * 60 * 60 * 1000;
@@ -1515,45 +1515,7 @@ if (command === 'mc' || command === 'membercount') {
 
   // UNMUTE KOMANDA (.unmute)
   if (command === 'unmute') {
-    if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
-      const noPermEmbed = new EmbedBuilder()
-        .setColor(0xFF0000)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
-        .setDescription('- Nemate potrebne dozvole za skidanje utišavanja.');
-      return message.reply({ embeds: [noPermEmbed] });
-    }
-
-    const target = message.mentions.members.first();
-    if (!target) {
-      const errEmbed = new EmbedBuilder()
-        .setColor(0xFF0000)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
-        .setDescription('- Navedite člana kome želite skinuti mute.\n- Upotreba: `.unmute @Korisnik`');
-      return message.reply({ embeds: [errEmbed] });
-    }
-
-    try {
-      await target.timeout(null);
-
-      const unmuteEmbed = new EmbedBuilder()
-        .setColor(0xFF8C00)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Unmute')
-        .setDescription(
-          `- **Korisnik:** ${target.user}\n` +
-          `- **Status:** Utišavanje je uspešno uklonjeno.\n` +
-          `- **Moderator:** ${message.author}`
-        )
-        .setTimestamp();
-
-      return message.reply({ embeds: [unmuteEmbed] });
-    } catch (error) {
-      console.error('Greska pri unmute-ovanju:', error);
-    }
-  }
-  
-    // UNMUTE KOMANDA (.unmute)
-  if (command === 'unmute') {
-    // 1. Provjera da li moderator ima dozvolu
+    // 1. Provera dozvole
     if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
       const noPermEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
@@ -1572,7 +1534,7 @@ if (command === 'mc' || command === 'membercount') {
       return message.reply({ embeds: [errEmbed] });
     }
 
-    // 2. Zabrana skidanja mute-a samom sebi
+    // 2. Zabrana unmutiranja samog sebe
     if (target.id === message.author.id) {
       const selfEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
@@ -1581,7 +1543,7 @@ if (command === 'mc' || command === 'membercount') {
       return message.reply({ embeds: [selfEmbed] });
     }
 
-    // 3. Provjera da li je korisnik uopšte mjutovan (ima aktivan timeout)
+    // 3. Provera da li je član uopšte utišan
     if (!target.isCommunicationDisabled()) {
       const notMutedEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
@@ -1590,7 +1552,7 @@ if (command === 'mc' || command === 'membercount') {
       return message.reply({ embeds: [notMutedEmbed] });
     }
 
-    // 4. Provjera hijerarhije uloga
+    // 4. Provera hijerarhije uloga
     if (target.roles.highest.position >= message.member.roles.highest.position && message.guild.ownerId !== message.author.id) {
       const roleEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
@@ -1622,7 +1584,7 @@ if (command === 'mc' || command === 'membercount') {
       return message.reply({ embeds: [failEmbed] });
     }
   }
-
+  
     // WARN (.warn)
   if (command === 'warn') {
     // Provera dozvola za moderatora
