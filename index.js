@@ -1423,7 +1423,7 @@ if (command === 'mc' || command === 'membercount') {
     if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
       const noPermEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Nemate potrebne dozvole za utišavanje članova.');
       return message.reply({ embeds: [noPermEmbed] });
     }
@@ -1435,7 +1435,7 @@ if (command === 'mc' || command === 'membercount') {
     if (!target) {
       const errEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Mute')
         .setDescription('- Navedite člana koga želite mjutati.\n- Upotreba: `.mute @Korisnik [vreme: 10m/1h/1d] [razlog]`');
       return message.reply({ embeds: [errEmbed] });
     }
@@ -1444,7 +1444,7 @@ if (command === 'mc' || command === 'membercount') {
     if (target.id === message.author.id) {
       const selfEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Ne možete utišati sami sebe!');
       return message.reply({ embeds: [selfEmbed] });
     }
@@ -1453,7 +1453,7 @@ if (command === 'mc' || command === 'membercount') {
     if (target.roles.highest.position >= message.member.roles.highest.position && message.guild.ownerId !== message.author.id) {
       const roleEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Ne možete utišati člana koji ima **istu ili veću ulogu** od vas!');
       return message.reply({ embeds: [roleEmbed] });
     }
@@ -1462,15 +1462,15 @@ if (command === 'mc' || command === 'membercount') {
     if (!target.moderatable) {
       const botRoleEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Ne mogu utišati ovog člana jer ima veću ulogu od bota.');
       return message.reply({ embeds: [botRoleEmbed] });
     }
 
     if (!durationInput) {
       const noTimeEmbed = new EmbedBuilder()
-        .setColor(0xFF0000)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setColor(0xFF8C00)
+        .setTitle('<:69929muted:1559674637120700448> Haos Client — Mute')
         .setDescription('- Navedite trajanje mute-a (npr. `10m`, `1h`, `1d`).');
       return message.reply({ embeds: [noTimeEmbed] });
     }
@@ -1482,8 +1482,8 @@ if (command === 'mc' || command === 'membercount') {
     else if (durationInput.endsWith('d')) durationMs = parseInt(durationInput) * 24 * 60 * 60 * 1000;
     else {
       const timeErrEmbed = new EmbedBuilder()
-        .setColor(0xFF0000)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setColor(0xFF8C00)
+        .setTitle('<:69929muted:1559674637120700448> Haos Client — Mute')
         .setDescription('- Neispravan format vremena! Koristite `m` (minuti), `h` (sati) ili `d` (dani).');
       return message.reply({ embeds: [timeErrEmbed] });
     }
@@ -1492,8 +1492,8 @@ if (command === 'mc' || command === 'membercount') {
       await target.timeout(durationMs, reason);
 
       const muteEmbed = new EmbedBuilder()
-        .setColor(0xFF8C00)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Mute')
+        .setColor(0x00FF00)
+        .setTitle('<:69929muted:1559674637120700448> Haos Client — Mute')
         .setDescription(
           `- **Korisnik:** ${target.user}\n` +
           `- **Trajanje:** \`${durationInput}\`\n` +
@@ -1507,7 +1507,7 @@ if (command === 'mc' || command === 'membercount') {
       console.error('Greska pri mute-ovanju:', error);
       const failEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Došlo je do greške prilikom utišavanja člana.');
       return message.reply({ embeds: [failEmbed] });
     }
@@ -1519,7 +1519,7 @@ if (command === 'mc' || command === 'membercount') {
     if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
       const noPermEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Nemate potrebne dozvole za skidanje utišavanja.');
       return message.reply({ embeds: [noPermEmbed] });
     }
@@ -1528,8 +1528,8 @@ if (command === 'mc' || command === 'membercount') {
 
     if (!target) {
       const errEmbed = new EmbedBuilder()
-        .setColor(0xFF0000)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setColor(0xFF8C00)
+        .setTitle('<:6859unmute:1559674651880202351> Haos Client — Unmute')
         .setDescription('- Navedite člana kome želite skinuti mute.\n- Upotreba: `.unmute @Korisnik`');
       return message.reply({ embeds: [errEmbed] });
     }
@@ -1538,7 +1538,7 @@ if (command === 'mc' || command === 'membercount') {
     if (target.id === message.author.id) {
       const selfEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Ne možete skinuti utišavanje sami sebi!');
       return message.reply({ embeds: [selfEmbed] });
     }
@@ -1547,7 +1547,7 @@ if (command === 'mc' || command === 'membercount') {
     if (!target.isCommunicationDisabled()) {
       const notMutedEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Ovaj član trenutno nije utišan.');
       return message.reply({ embeds: [notMutedEmbed] });
     }
@@ -1556,7 +1556,7 @@ if (command === 'mc' || command === 'membercount') {
     if (target.roles.highest.position >= message.member.roles.highest.position && message.guild.ownerId !== message.author.id) {
       const roleEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Ne možete skinuti utišavanje članu koji ima **istu ili veću ulogu** od vas!');
       return message.reply({ embeds: [roleEmbed] });
     }
@@ -1565,8 +1565,8 @@ if (command === 'mc' || command === 'membercount') {
       await target.timeout(null);
 
       const unmuteEmbed = new EmbedBuilder()
-        .setColor(0xFF8C00)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Unmute')
+        .setColor(0x00FF00)
+        .setTitle('<:6859unmute:1559674651880202351> Haos Client — Unmute')
         .setDescription(
           `- **Korisnik:** ${target.user}\n` +
           `- **Status:** Utišavanje je uspešno uklonjeno.\n` +
@@ -1579,7 +1579,7 @@ if (command === 'mc' || command === 'membercount') {
       console.error('Greska pri unmute-ovanju:', error);
       const failEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Došlo je do greške prilikom skidanja utišavanja.');
       return message.reply({ embeds: [failEmbed] });
     }
