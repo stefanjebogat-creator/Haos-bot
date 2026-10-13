@@ -1417,97 +1417,209 @@ if (command === 'mc' || command === 'membercount') {
         `${why}\nTrajanje: 28 dana`);
     }
 
-    // MUTE
-    if (command === 'mute') {
-    if (!message.member.permissions.has('ManageRoles')) {
-      return message.reply('❌ Nemate dozvolu za utišavanje članova.');
+    // MUTE KOMANDA (.mute / .timeout)
+  if (['mute', 'timeout'].includes(command)) {
+    // 1. Provjera da li moderator ima dozvolu za timeout
+    if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
+      const noPermEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Nemate potrebne dozvole za utišavanje članova.');
+      return message.reply({ embeds: [noPermEmbed] });
     }
 
     const target = message.mentions.members.first();
-    const reason = args.slice(1).join(' ') || 'Nije naveden razlog';
+    const durationInput = args[1];
+    const reason = args.slice(2).join(' ') || 'Razlog nije naveden.';
 
     if (!target) {
-      return message.reply('❌ Molimo vas da označite korisnika koga želite da utišate.');
+      const errEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Navedite člana koga želite mjutati.\n- Upotreba: `.mute @Korisnik [vreme: 10m/1h/1d] [razlog]`');
+      return message.reply({ embeds: [errEmbed] });
+    }
+
+    // 2. Zabrana mjutiranja samog sebe
+    if (target.id === message.author.id) {
+      const selfEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Ne možete utišati sami sebe!');
+      return message.reply({ embeds: [selfEmbed] });
+    }
+
+    // 3. Provjera hijerarhije uloga (Ne može se mjutati neko ko ima istu ili veću ulogu od tebe)
+    if (target.roles.highest.position >= message.member.roles.highest.position && message.guild.ownerId !== message.author.id) {
+      const roleEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Ne možete utišati člana koji ima **istu ili veću ulogu** od vas!');
+      return message.reply({ embeds: [roleEmbed] });
+    }
+
+    // 4. Provjera da li je član koji se mjutira moderabilan od strane bota
+    if (!target.moderatable) {
+      const botRoleEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Ne mogu utišati ovog člana jer ima veću ulogu od bota.');
+      return message.reply({ embeds: [botRoleEmbed] });
+    }
+
+    if (!durationInput) {
+      const noTimeEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Navedite trajanje mute-a (npr. `10m`, `1h`, `1d`).');
+      return message.reply({ embeds: [noTimeEmbed] });
+    }
+
+    // Konverzija vremena (minuti, sati, dani)
+    let durationMs = 0;
+    if (durationInput.endsWith('m')) durationMs = parseInt(durationInput) * 60 * 1000;
+    else if (durationInput.endsWith('h')) durationMs = parseInt(durationInput) * 60 * 60 * 1000;
+    else if (durationInput.endsWith('d')) durationMs = parseInt(durationInput) * 24 * 60 * 60 * 1000;
+    else {
+      const timeErrEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Neispravan format vremena! Koristite `m` (minuti), `h` (sati) ili `d` (dani).');
+      return message.reply({ embeds: [timeErrEmbed] });
     }
 
     try {
-      // Traženje ili kreiranje "Muted" uloge
-      let muteRole = message.guild.roles.cache.find(role => role.name === 'Muted');
-
-      if (!muteRole) {
-        muteRole = await message.guild.roles.create({
-          name: 'Muted',
-          color: '#818386',
-          permissions: []
-        });
-
-        // Oduzimanje permisije za pisanje u svim kanalima
-        message.guild.channels.cache.forEach(async (channel) => {
-          await channel.permissionOverwrites.create(muteRole, {
-            SendMessages: false,
-            AddReactions: false,
-            Speak: false
-          });
-        });
-      }
-
-      await target.roles.add(muteRole);
+      await target.timeout(durationMs, reason);
 
       const muteEmbed = new EmbedBuilder()
         .setColor(0xFF8C00)
-        .setTitle('<:4301boom:1559281123056549888> Haos Client — Mute')
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Mute')
         .setDescription(
-          '📌 **KORISNIK UTIŠAN**\n\n' +
-          `- **Korisnik:** ${target.user.tag} (${target.user})\n` +
-          `- **Moderator:** ${message.author.tag}\n` +
-          `- **Razlog:** \`${reason}\``
+          `- **Korisnik:** ${target.user}\n` +
+          `- **Trajanje:** \`${durationInput}\`\n` +
+          `- **Razlog:** ${reason}\n` +
+          `- **Moderator:** ${message.author}`
         )
-        .setFooter({ text: 'Haos Client • Moderacija' })
+        .setTimestamp();
 
       return message.reply({ embeds: [muteEmbed] });
     } catch (error) {
-      console.error('Greška pri utišavanju korisnika:', error);
-      return message.reply('❌ Došlo je do greške pri dodeljivanju Muted uloge. Proverite poziciju uloga bota.');
+      console.error('Greska pri mute-ovanju:', error);
+      const failEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Došlo je do greške prilikom utišavanja člana.');
+      return message.reply({ embeds: [failEmbed] });
     }
   }
 
-    // UNMUTE
-    if (command === 'unmute') {
-    if (!message.member.permissions.has('ManageRoles')) {
-      return message.reply('❌ Nemate dozvolu za odtišavanje članova.');
+  // UNMUTE KOMANDA (.unmute)
+  if (command === 'unmute') {
+    if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
+      const noPermEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Nemate potrebne dozvole za skidanje utišavanja.');
+      return message.reply({ embeds: [noPermEmbed] });
     }
 
     const target = message.mentions.members.first();
-    const reason = args.slice(1).join(' ') || 'Nije naveden razlog';
-
     if (!target) {
-      return message.reply('❌ Molimo vas da označite korisnika koga želite da odtišete.');
+      const errEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Navedite člana kome želite skinuti mute.\n- Upotreba: `.unmute @Korisnik`');
+      return message.reply({ embeds: [errEmbed] });
     }
 
     try {
-      const muteRole = message.guild.roles.cache.find(role => role.name === 'Muted');
-
-      if (!muteRole || !target.roles.cache.has(muteRole.id)) {
-        return message.reply('❌ Ovaj korisnik nije utišan (nema Muted ulogu).');
-      }
-
-      await target.roles.remove(muteRole);
+      await target.timeout(null);
 
       const unmuteEmbed = new EmbedBuilder()
         .setColor(0xFF8C00)
-        .setTitle('<:4301boom:1559281123056549888> Haos Client — Unmute')
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Unmute')
         .setDescription(
-          '📌 **KORISNIK ODTIŠAN**\n\n' +
-          `- **Korisnik:** ${target.user.tag} (${target.user})\n` +
-          `- **Moderator:** ${message.author.tag}\n` +
-          `- **Razlog:** \`${reason}\``
+          `- **Korisnik:** ${target.user}\n` +
+          `- **Status:** Utišavanje je uspešno uklonjeno.\n` +
+          `- **Moderator:** ${message.author}`
         )
-        .setFooter({ text: 'Haos Client • Moderacija' })
+        .setTimestamp();
 
       return message.reply({ embeds: [unmuteEmbed] });
     } catch (error) {
-      console.error('Greška pri odtišavanju korisnika:', error);
-      return message.reply('❌ Došlo je do greške pri uklanjanju Muted uloge. Proverite poziciju uloga bota.');
+      console.error('Greska pri unmute-ovanju:', error);
+    }
+  }
+  
+    // UNMUTE KOMANDA (.unmute)
+  if (command === 'unmute') {
+    // 1. Provjera da li moderator ima dozvolu
+    if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
+      const noPermEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Nemate potrebne dozvole za skidanje utišavanja.');
+      return message.reply({ embeds: [noPermEmbed] });
+    }
+
+    const target = message.mentions.members.first();
+
+    if (!target) {
+      const errEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Navedite člana kome želite skinuti mute.\n- Upotreba: `.unmute @Korisnik`');
+      return message.reply({ embeds: [errEmbed] });
+    }
+
+    // 2. Zabrana skidanja mute-a samom sebi
+    if (target.id === message.author.id) {
+      const selfEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Ne možete skinuti utišavanje sami sebi!');
+      return message.reply({ embeds: [selfEmbed] });
+    }
+
+    // 3. Provjera da li je korisnik uopšte mjutovan (ima aktivan timeout)
+    if (!target.isCommunicationDisabled()) {
+      const notMutedEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Ovaj član trenutno nije utišan.');
+      return message.reply({ embeds: [notMutedEmbed] });
+    }
+
+    // 4. Provjera hijerarhije uloga
+    if (target.roles.highest.position >= message.member.roles.highest.position && message.guild.ownerId !== message.author.id) {
+      const roleEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Ne možete skinuti utišavanje članu koji ima **istu ili veću ulogu** od vas!');
+      return message.reply({ embeds: [roleEmbed] });
+    }
+
+    try {
+      await target.timeout(null);
+
+      const unmuteEmbed = new EmbedBuilder()
+        .setColor(0xFF8C00)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Unmute')
+        .setDescription(
+          `- **Korisnik:** ${target.user}\n` +
+          `- **Status:** Utišavanje je uspešno uklonjeno.\n` +
+          `- **Moderator:** ${message.author}`
+        )
+        .setTimestamp();
+
+      return message.reply({ embeds: [unmuteEmbed] });
+    } catch (error) {
+      console.error('Greska pri unmute-ovanju:', error);
+      const failEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Došlo je do greške prilikom skidanja utišavanja.');
+      return message.reply({ embeds: [failEmbed] });
     }
   }
 
