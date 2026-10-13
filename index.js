@@ -274,6 +274,149 @@ if (command === 'lb' || command === 'leaderboard') {
       return message.reply('❌ Došlo je do greške pri dohvatanju rang liste. Proverite da li bot ima permisiju `Manage Guild` (Upravljanje serverom).');
     }
   }
+
+// GIVEROLE KOMANDA (.giverole / .addrole)
+  if (['giverole', 'addrole'].includes(command)) {
+    // 1. Provera da li moderator ima dozvolu za upravljanje ulogama
+    if (!message.member.permissions.has(PermissionFlagsBits.ManageRoles)) {
+      const noPermEmbed = new EmbedBuilder()
+        .setColor(0xFF0000) // CRVENA za grešku
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Nemate potrebne dozvole za upravljanje ulogama.');
+      return message.reply({ embeds: [noPermEmbed] });
+    }
+
+    const target = message.mentions.members.first();
+    const roleMention = message.mentions.roles.first() || message.guild.roles.cache.get(args[1]);
+
+    // 2. Pogrešna upotreba (Ukucano samo .giverole)
+    if (!target || !roleMention) {
+      const usageEmbed = new EmbedBuilder()
+        .setColor(0xFF8C00) // NARANDŽASTA za info/uputstvo
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — GiveRole')
+        .setDescription(
+          '- Pogrešno uneta komanda!\n' +
+          '- Upotreba: `.giverole` `[@Korisnik]` `[@Uloga / ID_uloge]`\n' +
+          '- Primer: `.giverole @Korisnik @VIP`'
+        );
+      return message.reply({ embeds: [usageEmbed] });
+    }
+
+    // 3. Provera hijerarhije (Moderator ne može davati ulogu koja je ista ili veća od njegove)
+    if (roleMention.position >= message.member.roles.highest.position && message.guild.ownerId !== message.author.id) {
+      const rolePermEmbed = new EmbedBuilder()
+        .setColor(0xFF0000) // CRVENA
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Ne možete dodeliti ulogu koja je **ista ili veća** od vaše najviše uloge!');
+      return message.reply({ embeds: [rolePermEmbed] });
+    }
+
+    // 4. Provera da li bot ima dovoljno visoku ulogu da dodeli traženu
+    if (roleMention.position >= message.guild.members.me.roles.highest.position) {
+      const botRoleEmbed = new EmbedBuilder()
+        .setColor(0xFF0000) // CRVENA
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Ne mogu dodeliti ovu ulogu jer se nalazi iznad moje najviše uloge u podešavanjima servera.');
+      return message.reply({ embeds: [botRoleEmbed] });
+    }
+
+    // 5. Provera da li član već ima tu ulogu
+    if (target.roles.cache.has(roleMention.id)) {
+      const alreadyHasEmbed = new EmbedBuilder()
+        .setColor(0xFF0000) // CRVENA
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription(`- Korisnik ${target.user} već ima ulogu ${roleMention}!`);
+      return message.reply({ embeds: [alreadyHasEmbed] });
+    }
+
+    try {
+      await target.roles.add(roleMention);
+
+      const successEmbed = new EmbedBuilder()
+        .setColor(0x00FF00) // LIME ZELENA za uspešnu komandu
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Dodeljena Uloga')
+        .setDescription(
+          `- **Korisnik:** ${target.user}\n` +
+          `- **Uloga:** ${roleMention}\n` +
+          `- **Moderator:** ${message.author}`
+        )
+        .setTimestamp();
+
+      return message.reply({ embeds: [successEmbed] });
+    } catch (error) {
+      console.error('Greska pri dodeli uloge:', error);
+      const failEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Došlo je do greške prilikom dodeljivanja uloge.');
+      return message.reply({ embeds: [failEmbed] });
+    }
+  }
+
+  // REMOVEROLE KOMANDA (.removerole / .removerole)
+  if (['removerole', 'takeole'].includes(command)) {
+    if (!message.member.permissions.has(PermissionFlagsBits.ManageRoles)) {
+      const noPermEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Nemate potrebne dozvole za uklanjanje uloga.');
+      return message.reply({ embeds: [noPermEmbed] });
+    }
+
+    const target = message.mentions.members.first();
+    const roleMention = message.mentions.roles.first() || message.guild.roles.cache.get(args[1]);
+
+    if (!target || !roleMention) {
+      const usageEmbed = new EmbedBuilder()
+        .setColor(0xFF8C00) // NARANDŽASTA za uputstvo
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — RemoveRole')
+        .setDescription(
+          '- Pogrešno uneta komanda!\n' +
+          '- Upotreba: `.removerole` `[@Korisnik]` `[@Uloga / ID_uloge]`\n' +
+          '- Primer: `.removerole @Korisnik @VIP`'
+        );
+      return message.reply({ embeds: [usageEmbed] });
+    }
+
+    if (roleMention.position >= message.member.roles.highest.position && message.guild.ownerId !== message.author.id) {
+      const rolePermEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Ne možete skinuti ulogu koja je **ista ili veća** od vaše najviše uloge!');
+      return message.reply({ embeds: [rolePermEmbed] });
+    }
+
+    if (!target.roles.cache.has(roleMention.id)) {
+      const noRoleEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription(`- Korisnik ${target.user} nema ulogu ${roleMention}!`);
+      return message.reply({ embeds: [noRoleEmbed] });
+    }
+
+    try {
+      await target.roles.remove(roleMention);
+
+      const successEmbed = new EmbedBuilder()
+        .setColor(0x00FF00) // LIME ZELENA za uspešnu komandu
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Uklonjena Uloga')
+        .setDescription(
+          `- **Korisnik:** ${target.user}\n` +
+          `- **Uloga:** ${roleMention}\n` +
+          `- **Moderator:** ${message.author}`
+        )
+        .setTimestamp();
+
+      return message.reply({ embeds: [successEmbed] });
+    } catch (error) {
+      console.error('Greska pri skidanju uloge:', error);
+      const failEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Došlo je do greške prilikom skidanja uloge.');
+      return message.reply({ embeds: [failEmbed] });
+    }
+  }
   
 // .invites
 client.on('messageCreate', async (message) => {
