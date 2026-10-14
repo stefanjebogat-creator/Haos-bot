@@ -275,6 +275,49 @@ if (command === 'lb' || command === 'leaderboard') {
     }
   }
 
+// OBAVEŠTENJE / NEWS KOMANDA (.kanal / .obavestenja)
+  if (['kanal', 'obavestenja', 'news'].includes(command)) {
+    // Provera da li član ima dozvolu za slanje obaveštenja (Manage Messages ili Administrator)
+    if (!message.member.permissions.has(PermissionFlagsBits.ManageMessages)) {
+      const noPermEmbed = new EmbedBuilder()
+        .setColor(0xFF0000) // CRVENA za grešku
+        .setTitle('<:296545announcement:1560039722884276234> Haos Client — Greška')
+        .setDescription('- Nemate potrebne dozvole za slanje ovog obaveštenja.');
+      return message.reply({ embeds: [noPermEmbed] });
+    }
+
+    try {
+      // Kreiranje lepe embed poruke sa tvojim uslovima
+      const newsEmbed = new EmbedBuilder()
+        .setColor(0xFF8C00) // NARANDŽASTA (standard za obaveštenja/info)
+        .setTitle('<:296545announcement:1560039722884276234> Haos Client — Custom VC & Role')
+        .setDescription(
+          '📢 **Obaveštenje za sve članove!**\n\n' +
+          'Želite li svoj **Custom Voice Channel (VC)** ili **Custom Ulogu**? Sada imate priliku!\n\n' +
+          '📌 **Uslovi za dobijanje:**\n' +
+          '- Morate biti aktivni na VC kanalima.\n' +
+          '- Redovno učestvovati u zajednici.\n\n' +
+          '✉️ **Kako se prijaviti?**\n' +
+          'Javite se nekome od **vlasnika** u privatne poruke (DM) sa dokazom o aktivnosti!'
+        )
+        .setFooter({ text: 'Haos Client • Sistem obaveštenja' })
+        .setTimestamp();
+
+      // Slanje poruke u kanal u kojem je ukucana komanda
+      await message.channel.send({ embeds: [newsEmbed] });
+
+      // Odmah briše tvoju komandu (.kanal) da kanal ostane čist
+      return message.delete().catch(() => {});
+    } catch (error) {
+      console.error('Greska pri slanju obavestenja:', error);
+      const failEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Došlo je do greške prilikom slanja obaveštenja.');
+      return message.reply({ embeds: [failEmbed] });
+    }
+  }
+  
 // GIVEROLE KOMANDA (.giverole / .addrole)
   if (['giverole', 'addrole'].includes(command)) {
     // 1. Provera da li moderator ima dozvolu za upravljanje ulogama
