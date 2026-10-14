@@ -275,45 +275,44 @@ if (command === 'lb' || command === 'leaderboard') {
     }
   }
 
-// OBAVEŠTENJE / NEWS KOMANDA (.kanal / .obavestenja)
+// OBAVEŠTENJE KOMANDA (.kanal / .obavestenja)
   if (['kanal', 'obavestenja', 'news'].includes(command)) {
-    // Provera da li član ima dozvolu za slanje obaveštenja (Manage Messages ili Administrator)
     if (!message.member.permissions.has(PermissionFlagsBits.ManageMessages)) {
       const noPermEmbed = new EmbedBuilder()
-        .setColor(0xFF0000) // CRVENA za grešku
-        .setTitle('<:296545announcement:1560039722884276234> Haos Client — Greška')
-        .setDescription('- Nemate potrebne dozvole za slanje ovog obaveštenja.');
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('> Nemate potrebne dozvole za slanje ovog obaveštenja.');
       return message.reply({ embeds: [noPermEmbed] });
     }
 
     try {
-      // Kreiranje lepe embed poruke sa tvojim uslovima
       const newsEmbed = new EmbedBuilder()
-        .setColor(0xFF8C00) // NARANDŽASTA (standard za obaveštenja/info)
-        .setTitle('<:296545announcement:1560039722884276234> Haos Client — Custom VC & Role')
+        .setColor(0xFF8C00) // Narandžasta boja ivice sa slike
+        .setTitle('🔊 Custom Voice Channel & Role — Haos Server')
+        .setThumbnail(message.guild.iconURL({ dynamic: true })) // Automatski stavlja ikonicu tvog servera gore desno kao na slici
         .setDescription(
-          '📢 **Obaveštenje za sve članove!**\n\n' +
-          'Želite li svoj **Custom Voice Channel (VC)** ili **Custom Ulogu**? Sada imate priliku!\n\n' +
-          '📌 **Uslovi za dobijanje:**\n' +
-          '- Morate biti aktivni na VC kanalima.\n' +
-          '- Redovno učestvovati u zajednici.\n\n' +
-          '✉️ **Kako se prijaviti?**\n' +
-          'Javite se nekome od **vlasnika** u privatne poruke (DM) sa dokazom o aktivnosti!'
+          `> Pozdrav **members**, ukoliko želite da imate lični **Custom VC** ili **Custom Role** na našem serveru, obavezni ste da ispunjavate navedene uslove ispod kako biste ostvarili to pravo.\n\n` +
+          `📜 **Uslovi i pravila za dobijanje**\n` +
+          `> Kako biste dobili vaš custom kanal ili ulogu, najbitnije je da ostane visoka **aktivnost** i redovno prisustvo na našoj zajednici.\n` +
+          `> — 🔊 **Aktivnost u VC:** Morate provoditi dovoljno vremena u **voice kanalima** sa ostalom ekipom.\n` +
+          `> — 💬 **Interakcija:** Poštovanje pravila i aktivno učestvovanje u chatu.\n\n` +
+          `✉️ **Prijava i kontakt**\n` +
+          `> Ukoliko ispunjavate uslove, slobodno se javite nekome od **vlasnika** u privatne poruke (**DM**) radi daljeg podešavanja i dodele.`
         )
-        .setFooter({ text: 'Haos Client • Sistem obaveštenja' })
+        .setFooter({ text: 'Haos Server • Obaveštenja i Informacije' })
         .setTimestamp();
 
-      // Slanje poruke u kanal u kojem je ukucana komanda
+      // Šalje obaveštenje u kanal
       await message.channel.send({ embeds: [newsEmbed] });
 
-      // Odmah briše tvoju komandu (.kanal) da kanal ostane čist
+      // Briše komandu .kanal da kanal ostane čist
       return message.delete().catch(() => {});
     } catch (error) {
       console.error('Greska pri slanju obavestenja:', error);
       const failEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
-        .setDescription('- Došlo je do greške prilikom slanja obaveštenja.');
+        .setDescription('> Došlo je do greške prilikom slanja obaveštenja.');
       return message.reply({ embeds: [failEmbed] });
     }
   }
