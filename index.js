@@ -1949,6 +1949,102 @@ if (command === 'mc' || command === 'membercount') {
 
 }); // ZATVARA GLAVNI client.on(Events.MessageCreate)
 
+// ==========================================
+// HAOS — IGRA POGAĐANJA BROJEVA
+// ==========================================
+
+const guessGames = new Map();
+
+client.on(Events.MessageCreate, async message => {
+  if (!message.guild || message.author.bot) return;
+
+  const content = message.content.trim();
+
+  // Pokretanje igre
+  if (content.toLowerCase() === '.guessstart') {
+    if (!message.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
+      return message.reply('❌ Nemaš dozvolu za pokretanje igre.');
+    }
+
+    if (guessGames.has(message.guild.id)) {
+      return message.reply('⚠️ Igra je već pokrenuta!');
+    }
+
+    const game = {
+      channelId: message.channel.id,
+      number: Math.floor(Math.random() * 100) + 1,
+      interval: null
+    };
+
+    guessGames.set(message.guild.id, game);
+
+    const sendRound = async () => {
+      const channel = await client.channels.fetch(game.channelId).catch(() => null);
+
+      if (!channel || !channel.isTextBased()) return;
+
+      game.number = Math.floor(Math.random() * 100) + 1;
+
+      await channel.send(
+        '🎯 **POGODI BROJ!**\n\n' +
+        'Pogodi broj od **1 do 100** i napiši ga u chatu!\n' +
+        '🏆 Ko prvi pogodi tačan broj, pobeđuje rundu!'
+      ).catch(console.error);
+    };
+
+    await sendRound();
+
+    game.interval = setInterval(sendRound, 30 * 60 * 1000);
+
+    return message.reply(
+      '✅ Igra je pokrenuta! Nova poruka stiže svakih 30 minuta.'
+    );
+  }
+
+  // Zaustavljanje igre
+  if (content.toLowerCase() === '.guessstop') {
+    if (!message.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
+      return message.reply('❌ Nemaš dozvolu za zaustavljanje igre.');
+    }
+
+    const game = guessGames.get(message.guild.id);
+
+    if (!game) {
+      return message.reply('⚠️ Igra trenutno nije pokrenuta.');
+    }
+
+    clearInterval(game.interval);
+    guessGames.delete(message.guild.id);
+
+    return message.reply('🛑 Igra pogađanja je zaustavljena.');
+  }
+
+  // Provera brojeva u kanalu igre
+  const game = guessGames.get(message.guild.id);
+
+  if (!game || message.channel.id !== game.channelId) return;
+  if (!/^\d+$/.test(content)) return;
+
+  const guess = Number(content);
+
+  if (guess < 1 || guess > 100) return;
+
+  if (guess === game.number) {
+    await message.reply(
+      `🎉 Bravo ${message.author}! Pogodio si broj **${game.number}**!`
+    );
+
+    game.number = Math.floor(Math.random() * 100) + 1;
+
+    await message.channel.send(
+      '🎯 **NOVA RUNDA!** Pogodi novi broj od **1 do 100**!'
+    );
+  } else if (guess < game.number) {
+    await message.react('⬆️').catch(() => {});
+  } else {
+    await message.react('⬇️').catch(() => {});
+  }
+});
 
 // PROVERA TOKENA I POKRETANJE
 if (!process.env.DISCORD_TOKEN) {
