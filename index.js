@@ -299,8 +299,7 @@ if (command === 'lb' || command === 'leaderboard') {
           `✉️ **Prijava i kontakt**\n` +
           `> Ukoliko ispunjavate uslove, slobodno se javite nekome od **vlasnika** u privatne poruke (**DM**) radi daljeg podešavanja i dodele.`
         )
-        .setFooter({ text: 'Haos Server • Obaveštenja i Informacije' })
-        .setTimestamp();
+        
 
       // Šalje obaveštenje u kanal
       await message.channel.send({ embeds: [newsEmbed] });
