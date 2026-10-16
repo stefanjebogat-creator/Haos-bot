@@ -990,11 +990,10 @@ if (command === 'mc' || command === 'membercount') {
 
    // TICKET PANEL — STAFF PRIJAVE (.ticketsetup)
   if (command === 'ticketsetup') {
-    // Provera dozvole (ManageGuild ili Administrator)
     if (!message.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
       const noPermEmbed = new EmbedBuilder()
-        .setColor(0xFF0000) // CRVENA za grešku
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client • Greška')
         .setDescription('> Nemate potrebne dozvole za postavljanje ticket panela.');
       return message.reply({ embeds: [noPermEmbed] });
     }
@@ -1009,31 +1008,29 @@ if (command === 'mc' || command === 'membercount') {
       );
 
       const panel = new EmbedBuilder()
-        .setColor(0xFF8C00) // NARANDŽASTA (naš standard)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Staff Prijave')
+        .setColor(0xFF8C00)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client • Staff Prijave')
         .setThumbnail(message.guild.iconURL({ dynamic: true }))
         .setDescription(
           `> Ukoliko želite da se prijavite za **Staff tim** na našem serveru, otvorite tiket klikom na dugme ispod.\n\n` +
           `📌 **Napomena pre otvaranja:**\n` +
-          `> — Otvarajte tiket samo ako ispunjavate osnovne uslove aktivnosti.\n` +
-          `> — Budite strpljivi, neko od vlasnika/vodstva će vam odgovoriti u najkraćem roku.`
+          `> • Otvarajte tiket samo ako ispunjavate osnovne uslove aktivnosti.\n` +
+          `> • Budite strpljivi, neko od vodstva će vam odgovoriti u najkraćem roku.`
         )
         .setFooter({ text: 'Haos Server • Staff Prijave' })
         .setTimestamp();
 
-      // Šalje panel u kanal
       await message.channel.send({
         embeds: [panel],
         components: [row]
       });
 
-      // Briše komandu da kanal ostane čist
       return message.delete().catch(() => {});
     } catch (error) {
       console.error('Greska pri slanju ticket panela:', error);
       const failEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client • Greška')
         .setDescription('> Došlo je do greške prilikom postavljanja ticket panela.');
       return message.reply({ embeds: [failEmbed] });
     }
@@ -2165,17 +2162,16 @@ if (!process.env.DISCORD_TOKEN) {
   process.exit(1);
 }
 
-// OSLUŠKIVAČ ZA TIKET DUGMIĆE (Staff Prijave & Podrška)
+// OSLUŠKIVAČ ZA TIKET DUGMIĆE
 client.on(Events.InteractionCreate, async (interaction) => {
   if (!interaction.isButton()) return;
 
-  // 1. KLIK NA DUGME "NAPRAVI TIKET"
+  // 1. KREIRANJE TIKETA
   if (interaction.customId === 'haos_ticket_create') {
     const guild = interaction.guild;
     const user = interaction.user;
     const channelName = `ticket-${user.username.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
 
-    // Provera da li korisnik već ima otvoren tiket
     const existingChannel = guild.channels.cache.find(c => c.name === channelName);
     if (existingChannel) {
       return interaction.reply({
@@ -2185,17 +2181,16 @@ client.on(Events.InteractionCreate, async (interaction) => {
     }
 
     try {
-      // Kreiranje privatnog kanala za tiket
       const ticketChannel = await guild.channels.create({
         name: channelName,
         type: ChannelType.GuildText,
         permissionOverwrites: [
           {
-            id: guild.id, // Skriveno za sve ostale na serveru
+            id: guild.id,
             deny: [PermissionFlagsBits.ViewChannel],
           },
           {
-            id: user.id, // Dozvoljeno korisniku koji je otvorio tiket
+            id: user.id,
             allow: [
               PermissionFlagsBits.ViewChannel,
               PermissionFlagsBits.SendMessages,
@@ -2206,14 +2201,15 @@ client.on(Events.InteractionCreate, async (interaction) => {
         ],
       });
 
+      // ZELENA BOJA ZA OTVOREN TIKET
       const welcomeEmbed = new EmbedBuilder()
-        .setColor(0x00FF00) // Lime zelena za uspeh
-        .setTitle(`<:276022clydebot:1558907359613419531> Staff Prijava — Tiket Otvoren`)
+        .setColor(0xFF0000) // Lime zelena
+        .setTitle(`<:276022clydebot:1558907359613419531> Staff Prijava • Tiket Otvoren`)
         .setDescription(
           `> Dobrodošli u vaš tiket, ${user}!\n\n` +
-          `> Neko od vodstva ili **Staff tima** će vam se obratiti ubrzo.\n` +
-          `> Napišite vaše podatke, godište i zašto želite da budete deo tima.\n\n` +
-          `🔒 *Za zatvaranje tiketa kliknite na dugme ispod ili ukucajte \`.close\`.*`
+          `> • Neko od vodstva ili **Staff tima** će vam se obratiti ubrzo.\n` +
+          `> • Napišite vaše podatke, godište i zašto želite da budete deo tima.\n\n` +
+          `🔒 *Za zatvaranje tiketa kliknite na dugme ispod.*`
         )
         .setTimestamp();
 
@@ -2237,20 +2233,56 @@ client.on(Events.InteractionCreate, async (interaction) => {
     } catch (error) {
       console.error('Greska pri kreiranju tiketa:', error);
       return interaction.reply({
-        content: '❌ Došlo je do greške prilikom kreiranja tiketa. Proverite dozvole bota!',
+        content: '❌ Došlo je do greške prilikom kreiranja tiketa.',
         ephemeral: true
       });
     }
   }
 
-  // 2. KLIK NA DUGME "ZATVORI TIKET"
+  // 2. ZATVARANJE TIKETA (Samo sakriva kanal od korisnika, NE BRIŠE GA)
   if (interaction.customId === 'haos_ticket_close') {
-    const closeEmbed = new EmbedBuilder()
-      .setColor(0xFF0000)
-      .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Zatvaranje')
-      .setDescription('> Ovaj tiket će biti obrisan za **5 sekundi**...');
+    const channel = interaction.channel;
+    
+    // Pronalazimo korisnika koji je otvorio tiket po imenu kanala
+    const memberName = channel.name.replace('ticket-', '');
+    const member = channel.guild.members.cache.find(m => m.user.username.toLowerCase().replace(/[^a-z0-9]/g, '') === memberName);
 
-    await interaction.reply({ embeds: [closeEmbed] });
+    if (member) {
+      // Oduzimamo dozvolu korisniku da vidi i piše u kanalu
+      await channel.permissionOverwrites.edit(member.id, {
+        ViewChannel: false,
+        SendMessages: false
+      }).catch(() => {});
+    }
+
+    const closedEmbed = new EmbedBuilder()
+      .setColor(0xFF8C00)
+      .setTitle('<:276022clydebot:1558907359613419531> Haos Client • Tiket Zatvoren')
+      .setDescription(
+        `> Tiket je uspešno zatvoren od strane ${interaction.user}.\n` +
+        `> • Korisnik više nema pristup ovom kanalu.\n` +
+        `> • Ukoliko želite trajno obrisati ovaj tiket, kliknite na dugme ispod.`
+      )
+      .setTimestamp();
+
+    const deleteBtn = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId('haos_ticket_delete')
+        .setLabel('Izbriši Tiket 🗑️')
+        .setStyle(ButtonStyle.Danger)
+    );
+
+    await interaction.reply({ embeds: [closedEmbed], components: [deleteBtn] });
+  }
+
+  // 3. TRAJNO BRISANJE TIKETA
+  if (interaction.customId === 'haos_ticket_delete') {
+    const deleteEmbed = new EmbedBuilder()
+      .setColor(0xFF0000)
+      .setTitle('<:276022clydebot:1558907359613419531> Haos Client • Brisanje')
+      .setDescription('> Tiket će biti trajno obrisan za **5 sekundi**...');
+
+    await interaction.reply({ embeds: [deleteEmbed] });
     setTimeout(() => interaction.channel.delete().catch(() => {}), 5000);
   }
 });
