@@ -1009,7 +1009,6 @@ if (command === 'mc' || command === 'membercount') {
           `- **Server:** 🍁 × HAOS\n` +
           `- **Svrha:** Prijave za Staff / Podrška`
         )
-        .setTimestamp();
 
       await message.channel.send({
         embeds: [panel],
