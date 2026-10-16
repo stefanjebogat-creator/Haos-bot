@@ -1017,8 +1017,7 @@ if (command === 'mc' || command === 'membercount') {
           `> • Otvarajte tiket samo ako ispunjavate osnovne uslove aktivnosti.\n` +
           `> • Budite strpljivi, neko od vodstva će vam odgovoriti u najkraćem roku.`
         )
-        .setFooter({ text: 'Haos Server • Staff Prijave' })
-        .setTimestamp();
+        
 
       await message.channel.send({
         embeds: [panel],
