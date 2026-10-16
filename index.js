@@ -988,10 +988,18 @@ if (command === 'mc' || command === 'membercount') {
     return false;
   };
 
-    // TICKET PANEL — STAFF PRIJAVE
-    if (command === 'ticketsetup') {
-      if (!hasPermission(PermissionFlagsBits.ManageGuild)) return;
+   // TICKET PANEL — STAFF PRIJAVE (.ticketsetup)
+  if (command === 'ticketsetup') {
+    // Provera dozvole (ManageGuild ili Administrator)
+    if (!message.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
+      const noPermEmbed = new EmbedBuilder()
+        .setColor(0xFF0000) // CRVENA za grešku
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('> Nemate potrebne dozvole za postavljanje ticket panela.');
+      return message.reply({ embeds: [noPermEmbed] });
+    }
 
+    try {
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
           .setCustomId('haos_ticket_create')
@@ -1001,20 +1009,35 @@ if (command === 'mc' || command === 'membercount') {
       );
 
       const panel = new EmbedBuilder()
-        .setColor('#43A047')
-        .setTitle('Staff Prijave')
+        .setColor(0xFF8C00) // NARANDŽASTA (naš standard)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Staff Prijave')
+        .setThumbnail(message.guild.iconURL({ dynamic: true }))
         .setDescription(
-          '**STAFF PRIJAVE – REAGUJTE SA 🎟️, DA BI OTVORILI TIKET**'
+          `> Ukoliko želite da se prijavite za **Staff tim** na našem serveru, otvorite tiket klikom na dugme ispod.\n\n` +
+          `📌 **Napomena pre otvaranja:**\n` +
+          `> — Otvarajte tiket samo ako ispunjavate osnovne uslove aktivnosti.\n` +
+          `> — Budite strpljivi, neko od vlasnika/vodstva će vam odgovoriti u najkraćem roku.`
         )
-        .setFooter({
-          text: 'TicketTool.xyz - Ticketing without clutter'
-        });
+        .setFooter({ text: 'Haos Server • Staff Prijave' })
+        .setTimestamp();
 
-      return message.channel.send({
+      // Šalje panel u kanal
+      await message.channel.send({
         embeds: [panel],
         components: [row]
       });
+
+      // Briše komandu da kanal ostane čist
+      return message.delete().catch(() => {});
+    } catch (error) {
+      console.error('Greska pri slanju ticket panela:', error);
+      const failEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('> Došlo je do greške prilikom postavljanja ticket panela.');
+      return message.reply({ embeds: [failEmbed] });
     }
+  }
 
   if (command === 'help' || command === 'h') {
     const helpEmbed = new EmbedBuilder()
