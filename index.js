@@ -2152,7 +2152,7 @@ if (!process.env.DISCORD_TOKEN) {
 client.on(Events.InteractionCreate, async (interaction) => {
   if (!interaction.isButton()) return;
 
-  // 1. OTVARANJE TIKETA
+  // 1. OTVARANJE TIKETA (Narandžasta boja + Pitanja)
   if (interaction.customId === 'haos_ticket_create') {
     const guild = interaction.guild;
     const user = interaction.user;
@@ -2187,15 +2187,19 @@ client.on(Events.InteractionCreate, async (interaction) => {
         ],
       });
 
-      // KLASIČAN EMBED KAO MEMBERCOUNT
+      // NARANDŽASTA BOJA ZA OTVOREN TIKET SA PITANJIMA
       const welcomeEmbed = new EmbedBuilder()
-        .setColor(0x00FF00) // Svetlo zelena
+        .setColor(0xFF8C00) // Narandžasta boja
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Otvoren Tiket')
         .setThumbnail(guild.iconURL({ dynamic: true }))
         .setDescription(
           `- **Korisnik:** ${user}\n` +
           `- **Server:** 🍁 × HAOS\n` +
-          `- **Status:** Tiket uspešno kreiran`
+          `- **Status:** Čeka se odgovor na pitanja\n\n` +
+          `**Molimo te da odgovoriš na sledeća pitanja:**\n` +
+          `1. Kako se zoveš / tvoj nadimak?\n` +
+          `2. Koliko imaš godina?\n` +
+          `3. Možeš li dovesti jednog druga na server?`
         )
         .setTimestamp();
 
@@ -2221,7 +2225,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     }
   }
 
-  // 2. ZATVARANJE TIKETA (Sakriva kanal od korisnika)
+  // 2. ZATVARANJE TIKETA (Crvena boja, sakriva kanal od korisnika)
   if (interaction.customId === 'haos_ticket_close') {
     const channel = interaction.channel;
     const memberName = channel.name.replace('ticket-', '');
@@ -2235,7 +2239,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     }
 
     const closedEmbed = new EmbedBuilder()
-      .setColor(0xFF8C00)
+      .setColor(0xFF0000) // Crvena boja
       .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Tiket Zatvoren')
       .setThumbnail(interaction.guild.iconURL({ dynamic: true }))
       .setDescription(
@@ -2254,10 +2258,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
     await interaction.reply({ embeds: [closedEmbed], components: [deleteBtn] });
   }
 
-  // 3. TRAJNO BRISANJE TIKETA
+  // 3. TRAJNO BRISANJE TIKETA (Crvena boja)
   if (interaction.customId === 'haos_ticket_delete') {
     const deleteEmbed = new EmbedBuilder()
-      .setColor(0xFF0000)
+      .setColor(0xFF0000) // Crvena boja
       .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Brisanje')
       .setDescription('- Tiket će biti obrisan za **5 sekundi**...');
 
