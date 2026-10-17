@@ -1441,8 +1441,8 @@ if (command === 'mc' || command === 'membercount') {
         .setColor(0xFF8C00)
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Ban')
         .setDescription(
-          '- **Pogrešno uneta komanda!**\n' +
-          '- **Upotreba:** `.ban` `[@Korisnik / ID_korisnika]` `[razlog]`\n' +
+          '- Pogrešno uneta komanda!\n' +
+          '- Upotreba: `.ban` `[@Korisnik / ID_korisnika]` `[razlog]`\n' +
         );
       return message.reply({ embeds: [usageEmbed] });
     }
@@ -1541,8 +1541,8 @@ if (command === 'mc' || command === 'membercount') {
         .setColor(0xFF8C00)
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Unban')
         .setDescription(
-          '- **Pogrešno uneta komanda!**\n' +
-          '- **Upotreba:** `.unban` `[ID_korisnika]` `[razlog]`\n' +
+          '- Pogrešno uneta komanda!\n' +
+          '- Upotreba:** `.unban` `[ID_korisnika]` `[razlog]`\n' +
         );
       return message.reply({ embeds: [usageEmbed] });
     }
