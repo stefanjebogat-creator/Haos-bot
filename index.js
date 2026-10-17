@@ -1525,7 +1525,7 @@ if (command === 'mc' || command === 'membercount') {
         .setColor(0x00FF00) // Svetlo zelena za uspeh
         .setTitle('<:deeban:1561106716391772392> Haos Client — Ban')
         .setDescription(
-          `- **Korisnik:** ${targetUserTag}\n je banovan/a` +
+          `- **Korisnik:** ${targetUserTag}\n` +
           `- **Razlog:** ${reason}\n` +
           `- **Moderator:** ${message.author}`
         )
