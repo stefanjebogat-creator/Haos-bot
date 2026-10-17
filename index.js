@@ -1573,7 +1573,6 @@ if (command === 'mc' || command === 'membercount') {
         .setTitle('<:haos_unban:1561107843854106774>  Haos Client — Unban')
         .setDescription(
           `- **Korisnik:** <@${targetId}>\n` +
-          `- **Razlog:** ${reason}\n` +
           `- **Moderator:** ${message.author}`
         )
 
