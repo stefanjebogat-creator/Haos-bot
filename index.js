@@ -1525,7 +1525,7 @@ if (command === 'mc' || command === 'membercount') {
         .setColor(0x00FF00) // Svetlo zelena za uspeh
         .setTitle('<:deeban:1561106716391772392> Haos Client — Ban')
         .setDescription(
-          `- **Korisnik:** ${targetUserTag}\n` +
+          `- **Korisnik:** ${targetUserTag}\n je banovan/a` +
           `- **Razlog:** ${reason}\n` +
           `- **Moderator:** ${message.author}`
         )
@@ -1560,7 +1560,7 @@ if (command === 'mc' || command === 'membercount') {
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Unban')
         .setDescription(
           `- **Pogrešno uneta komanda!**\n` +
-          `- **Upotreba:** \`.unban ID_korisnika [razlog]\``
+          `- **Upotreba:** \`.unban ID_korisnika\``
         );
       return message.reply({ embeds: [usageEmbed] });
     }
