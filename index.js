@@ -17,7 +17,7 @@ const {
 const PREFIX = '.';
 const COLOR = '#F3994A';
 const giveaways = new Map();
-const COMMAND_LOG_CHANNEL_ID = '1559168762501005452';
+const COMMAND_LOG_CHANNEL_ID = '1558956324014915724';
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -67,7 +67,7 @@ function saveWarnings(data) {
 }
 
 function log(guild, title, description) {
-  const channel = guild.channels.cache.get(process.env.LOG_CHANNEL_ID);
+  const channel = guild.channels.cache.get(COMMAND_LOG_CHANNEL_ID);
 
   if (channel?.isTextBased()) {
     channel.send({ embeds: [embed(title, description)] }).catch(() => {});
@@ -373,6 +373,9 @@ if (command === 'lb' || command === 'leaderboard') {
     try {
       await target.roles.add(roleMention);
 
+      log(message.guild, 'Uloga dodeljena',
+        `Korisnik: ${target.user.tag} (${target.id})\nUloga: ${roleMention.name}\nModerator: ${message.author.tag}`);
+
       const successEmbed = new EmbedBuilder()
         .setColor(0x00FF00) // LIME ZELENA za uspešnu komandu
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Dodeljena Uloga')
@@ -437,6 +440,9 @@ if (command === 'lb' || command === 'leaderboard') {
 
     try {
       await target.roles.remove(roleMention);
+
+      log(message.guild, 'Uloga uklonjena',
+        `Korisnik: ${target.user.tag} (${target.id})\nUloga: ${roleMention.name}\nModerator: ${message.author.tag}`);
 
       const successEmbed = new EmbedBuilder()
         .setColor(0x00FF00) // LIME ZELENA za uspešnu komandu
@@ -770,6 +776,9 @@ if (command === 'mc' || command === 'membercount') {
       // Briše zadati broj poruka
       const deletedMessages = await message.channel.bulkDelete(amount, true);
 
+      log(message.guild, 'PURGE • Poruke obrisane',
+        `Broj obrisanih poruka: ${deletedMessages.size}\nKanal: ${message.channel}\nModerator: ${message.author.tag}`);
+
       const successEmbed = new EmbedBuilder()
         .setColor(0xFF8C00)
         .setTitle('<:6728_true:1558944305283080232> Haos Client — Purge')
@@ -849,6 +858,9 @@ if (command === 'mc' || command === 'membercount') {
             position: position,
             reason: `Nuke komanda potvrdjena od strane ${message.author.tag}`
           });
+
+          log(message.guild, 'NUKE • Kanal očišćen',
+            `Kanal: #${channel.name}\nModerator: ${message.author.tag}`);
 
           // Briše stari kanal
           await channel.delete(`Nuke komanda potvrdjena od strane ${message.author.tag}`);
@@ -935,6 +947,9 @@ if (command === 'mc' || command === 'membercount') {
 
       await target.send({ embeds: [embed] }).catch(() => null);
       await message.channel.send({ embeds: [embed] });
+
+      log(message.guild, 'OPOMENA • Timeout',
+        `Član: ${target.user.tag} (${target.id})\nModerator: ${message.author.tag}\nTrajanje: ${timeoutMinutes} minuta\nRazlog: ${reason}`);
 
       return message.reply(
         `✅ ${target} je opomenut i dobio je timeout od ${timeoutMinutes} minuta.`
@@ -1713,6 +1728,9 @@ return message.reply({ embeds: [usageEmbed] });
     try {
       await target.timeout(durationMs, reason);
 
+      log(message.guild, 'MUTE • Timeout',
+        `Korisnik: ${target.user.tag} (${target.id})\nTrajanje: ${durationInput}\nModerator: ${message.author.tag}\nRazlog: ${reason}`);
+
       const muteEmbed = new EmbedBuilder()
         .setColor(0x00FF00)
         .setTitle('<:69929muted:1559674637120700448> Haos Client — Mute')
@@ -1785,6 +1803,9 @@ return message.reply({ embeds: [usageEmbed] });
 
     try {
       await target.timeout(null);
+
+      log(message.guild, 'UNMUTE • Timeout uklonjen',
+        `Korisnik: ${target.user.tag} (${target.id})\nModerator: ${message.author.tag}`);
 
       const unmuteEmbed = new EmbedBuilder()
         .setColor(0x00FF00)
@@ -1860,6 +1881,9 @@ return message.reply({ embeds: [usageEmbed] });
       await member.send({ embeds: [dmEmbed] }).catch(() => {
         // Ignoriše grešku ako korisnik ima ugašene Privatne Poruke (DM)
       });
+
+      log(message.guild, 'WARN • Opomena',
+        `Korisnik: ${member.user.tag} (${member.id})\nModerator: ${message.author.tag}\nRazlog: ${reason}`);
 
       // Potvrda u kanalu gde je izvršena komanda
       const successEmbed = new EmbedBuilder()
