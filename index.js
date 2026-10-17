@@ -17,7 +17,7 @@ const {
 const PREFIX = '.';
 const COLOR = '#F3994A';
 const giveaways = new Map();
-const COMMAND_LOG_CHANNEL_ID = '1558956324014915724';
+const COMMAND_LOG_CHANNEL_ID = '1559168762501005452';
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
