@@ -1423,44 +1423,43 @@ if (command === 'mc' || command === 'membercount') {
     }
 
   
-   // BAN KOMANDA (.ban)
+// BAN KOMANDA (.ban)
   if (command === 'ban') {
-    // 1. Provera da li moderator ima dozvolu za banovanje
     if (!message.member.permissions.has(PermissionFlagsBits.BanMembers)) {
       const noPermEmbed = new EmbedBuilder()
-        .setColor(0xFF0000) // CRVENA za grešku
+        .setColor(0xFF0000)
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
         .setDescription('- Nemate potrebne dozvole za banovanje članova.');
       return message.reply({ embeds: [noPermEmbed] });
     }
 
-    // Uzimamo korisnika preko mention-a ILI preko unetog ID-ja
     const query = args[0];
     const reason = args.slice(1).join(' ') || 'Razlog nije naveden.';
 
     if (!query) {
       const usageEmbed = new EmbedBuilder()
-        .setColor(0xFF8C00) // NARANDŽASTA za uputstvo
+        .setColor(0xFF8C00)
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Ban')
         .setDescription(
           '- Pogrešno uneta komanda!\n' +
           '- Upotreba: `.ban` `[@Korisnik / ID_korisnika]` `[razlog]`\n' +
-          '- Primer: `.ban @Korisnik Spamovanje` ili `.ban 123456789012345678 Raid`'
+          '- Primer: `.ban @Magdalena Spamovanje`'
         );
       return message.reply({ embeds: [usageEmbed] });
     }
 
     let targetMember;
     let targetId;
+    let targetUserTag;
 
-    // Pokušavamo da nađemo članu u kešu ili da ga dobavimo preko ID-ja/mention-a
     const mentionedUser = message.mentions.users.first();
     if (mentionedUser) {
       targetId = mentionedUser.id;
+      targetUserTag = `<@${targetId}>`;
       targetMember = await message.guild.members.fetch(targetId).catch(() => null);
     } else {
-      // Ako je unet čist ID (npr. brojevi)
       targetId = query.replace(/[^0-9]/g, '');
+      targetUserTag = `<@${targetId}>`;
       try {
         targetMember = await message.guild.members.fetch(targetId).catch(() => null);
       } catch (e) {
@@ -1468,39 +1467,34 @@ if (command === 'mc' || command === 'membercount') {
       }
     }
 
-    // Ako korisnik uopšte ne postoji ili nije validan ID
     if (!targetId || targetId.length < 16) {
       const errEmbed = new EmbedBuilder()
-        .setColor(0xFF0000) // CRVENA
+        .setColor(0xFF0000)
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
         .setDescription('- Navedite validnog člana ili ispravan ID korisnika.');
       return message.reply({ embeds: [errEmbed] });
     }
 
-    // 2. Zabrana banovanja samog sebe
     if (targetId === message.author.id) {
       const selfEmbed = new EmbedBuilder()
-        .setColor(0xFF0000) // CRVENA
+        .setColor(0xFF0000)
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
         .setDescription('- Ne možete banovati sami sebe!');
       return message.reply({ embeds: [selfEmbed] });
     }
 
-    // Ako je član na serveru, radimo dodatne bezbednosne provere
     if (targetMember) {
-      // 3. Provera hijerarhije uloga
       if (targetMember.roles.highest.position >= message.member.roles.highest.position && message.guild.ownerId !== message.author.id) {
         const roleEmbed = new EmbedBuilder()
-          .setColor(0xFF0000) // CRVENA
+          .setColor(0xFF0000)
           .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
           .setDescription('- Ne možete banovati člana koji ima **istu ili veću ulogu** od vas!');
         return message.reply({ embeds: [roleEmbed] });
       }
 
-      // 4. Provera da li bot može da ga banuje
       if (!targetMember.bannable) {
         const botRoleEmbed = new EmbedBuilder()
-          .setColor(0xFF0000) // CRVENA
+          .setColor(0xFF0000)
           .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
           .setDescription('- Ne mogu banovati ovog člana jer ima višu ulogu od bota.');
         return message.reply({ embeds: [botRoleEmbed] });
@@ -1508,14 +1502,13 @@ if (command === 'mc' || command === 'membercount') {
     }
 
     try {
-      // Izvršavanje bana (radi i za članove na serveru i preko vanjskog ID-ja)
       await message.guild.members.ban(targetId, { reason: `${message.author.tag}: ${reason}` });
 
       const successEmbed = new EmbedBuilder()
-        .setColor(0x00FF00) // LIME ZELENA za uspešnu komandu
+        .setColor(0x00FF00) // Svetlo zelena za uspeh
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Ban')
         .setDescription(
-          `- **Korisnik ID:** \`${targetId}\`\n` +
+          `- **Korisnik:** ${targetUserTag}\n` +
           `- **Razlog:** ${reason}\n` +
           `- **Moderator:** ${message.author}`
         )
@@ -1525,9 +1518,58 @@ if (command === 'mc' || command === 'membercount') {
     } catch (error) {
       console.error('Greska pri banovanju:', error);
       const failEmbed = new EmbedBuilder()
-        .setColor(0xFF0000) // CRVENA
+        .setColor(0xFF0000)
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
         .setDescription('- Došlo je do greške prilikom banovanja korisnika.');
+      return message.reply({ embeds: [failEmbed] });
+    }
+  }
+
+  // UNBAN KOMANDA (.unban)
+  if (command === 'unban') {
+    if (!message.member.permissions.has(PermissionFlagsBits.BanMembers)) {
+      const noPermEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Nemate potrebne dozvole za unbanovanje članova.');
+      return message.reply({ embeds: [noPermEmbed] });
+    }
+
+    const targetId = args[0] ? args[0].replace(/[^0-9]/g, '') : null;
+    const reason = args.slice(1).join(' ') || 'Razlog nije naveden.';
+
+    if (!targetId || targetId.length < 16) {
+      const usageEmbed = new EmbedBuilder()
+        .setColor(0xFF8C00)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Unban')
+        .setDescription(
+          '- Pogrešno uneta komanda!\n' +
+          '- Upotreba: `.unban` `[ID_korisnika]` `[razlog]`\n' +
+          '- Primer: `.unban 1293540936407711774 Greška`'
+        );
+      return message.reply({ embeds: [usageEmbed] });
+    }
+
+    try {
+      await message.guild.members.unban(targetId, `${message.author.tag}: ${reason}`);
+
+      const successEmbed = new EmbedBuilder()
+        .setColor(0x00FF00) // Svetlo zelena za uspeh
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Unban')
+        .setDescription(
+          `- **Korisnik:** <@${targetId}>\n` +
+          `- **Razlog:** ${reason}\n` +
+          `- **Moderator:** ${message.author}`
+        )
+        .setTimestamp();
+
+      return message.reply({ embeds: [successEmbed] });
+    } catch (error) {
+      console.error('Greska pri unbanovanju:', error);
+      const failEmbed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
+        .setDescription('- Korisnik nije pronađen na listi banovanih ili je unet pogrešan ID.');
       return message.reply({ embeds: [failEmbed] });
     }
   }
