@@ -1581,7 +1581,7 @@ if (command === 'mc' || command === 'membercount') {
       console.error('Greska pri unbanovanju:', error);
       const failEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
-        .setTitle('<:30748bannedrole:1558942653649916044>Haos Client — Greška')
+        .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Korisnik nije pronađen na listi banovanih ili je unet pogrešan ID.');
       return message.reply({ embeds: [failEmbed] });
     }
