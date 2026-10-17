@@ -1453,12 +1453,12 @@ if (command === 'mc' || command === 'membercount') {
 
    
  if (!query) {
-    const usageEmbed = new EmbedBuilder()
+      const usageEmbed = new EmbedBuilder()
         .setColor(0xFF8C00)
-        .setTitle('❌ Pogrešna upotreba komande')
+        .setTitle('<:276022clydebot:1558907359613419531> Pogrešna upotreba komande')
         .setDescription(
-            'Pogrešno uneta komanda!\n' +
-            'Upotreba: `.ban @Korisnik / ID_korisnika [razlog]`'
+          `- **Pogrešno uneta komanda!**\n` +
+          `- **Upotreba:** \`.ban @Korisnik / ID_korisnika [razlog]\``
         );
 
     return message.reply({ embeds: [usageEmbed] });
@@ -1551,20 +1551,18 @@ if (command === 'mc' || command === 'membercount') {
       return message.reply({ embeds: [noPermEmbed] });
     }
 
-    const targetId = args[0] ? args[0].replace(/[^0-9]/g, '') : null;
+   const targetId = args[0] ? args[0].replace(/[^0-9]/g, '') : null;
     const reason = args.slice(1).join(' ') || 'Razlog nije naveden.';
 
     if (!targetId || targetId.length < 16) {
       const usageEmbed = new EmbedBuilder()
-    .setColor(0xFF8C00)
-    .setTitle('<:276022clydeb0t:1558907359613419531> Haos Client – Unban')
-    .setDescription(
-        'Pogrešno uneta komanda!\n' +
-        'Upotreba: **`.unban` `[ID_korisnika]` `[razlog]`**\n'
-    );
-
-return message.reply({ embeds: [usageEmbed] });
-
+        .setColor(0xFF8C00)
+        .setTitle('<:276022clydebot:1558907359613419531> Pogrešna upotreba komande')
+        .setDescription(
+          `- **Pogrešno uneta komanda!**\n` +
+          `- **Upotreba:** \`.unban ID_korisnika [razlog]\``
+        );
+      return message.reply({ embeds: [usageEmbed] });
     }
 
     try {
