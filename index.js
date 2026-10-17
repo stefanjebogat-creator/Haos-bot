@@ -1436,16 +1436,19 @@ if (command === 'mc' || command === 'membercount') {
     const query = args[0];
     const reason = args.slice(1).join(' ') || 'Razlog nije naveden.';
 
-    if (!query) {
-      const usageEmbed = new EmbedBuilder()
+   
+ if (!query) {
+    const usageEmbed = new EmbedBuilder()
         .setColor(0xFF8C00)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Ban')
+        .setTitle('❌ Pogrešna upotreba komande')
         .setDescription(
-          '- Pogrešno uneta komanda!\n' +
-          '- Upotreba: `.ban` `[@Korisnik / ID_korisnika]` `[razlog]`\n' +
+            'Pogrešno uneta komanda!\n' +
+            'Upotreba: `.ban @Korisnik / ID_korisnika [razlog]`'
         );
-      return message.reply({ embeds: [usageEmbed] });
-    }
+
+    return message.reply({ embeds: [usageEmbed] });
+}
+
 
     let targetMember;
     let targetId;
