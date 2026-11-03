@@ -165,7 +165,7 @@ async function sendLevelUp(message, newLevel) {
 
   const levelEmbed = new EmbedBuilder()
     .setColor('#163B6E')
-    .setDescription(`🎉  ${message.author} je dostigao **LEVEL ${newLevel}!**`)
+    .setDescription(`<:haos_bump:1550993997210583130>  ${message.author} je dostigao **LEVEL ${newLevel}!**`)
     .setThumbnail(message.author.displayAvatarURL({ size: 128 }));
 
   await channel.send({
