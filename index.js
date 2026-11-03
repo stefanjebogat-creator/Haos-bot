@@ -15,7 +15,7 @@ const {
 } = require('discord.js');
 
 const PREFIX = '.';
-const COLOR = '#163B6E';
+const COLOR = '#00BFFF';
 const giveaways = new Map();
 const COMMAND_LOG_CHANNEL_ID = '1559168762501005452';
 
@@ -92,7 +92,7 @@ function getLevelUser(guildId, userId) {
 // Discord embedovi imaju ograničenja: ne podržavaju proizvoljan raspored/slike kao web kartice.
 function haosLevelEmbed(title, description, thumbnailURL = null) {
   const levelEmbed = new EmbedBuilder()
-    .setColor('#163B6E')
+    .setColor('#00BFFF')
     .setTitle(title)
     .setDescription(description);
 
@@ -164,7 +164,7 @@ async function sendLevelUp(message, newLevel) {
   if (!channel?.isTextBased()) return;
 
   const levelEmbed = new EmbedBuilder()
-    .setColor('#163B6E')
+    .setColor('#00BFFF')
     .setDescription(`<:haos_bump:1550993997210583130>  ${message.author} je dostigao **LEVEL ${newLevel}!**`)
     .setThumbnail(message.author.displayAvatarURL({ size: 128 }));
 
@@ -222,7 +222,7 @@ const client = new Client({
 
 function embed(title, description) {
   return new EmbedBuilder()
-    .setColor('#163B6E')
+    .setColor('#00BFFF')
     .setTitle(title)
     .setDescription(description)
     .setTimestamp();
@@ -381,7 +381,7 @@ client.on(Events.GuildMemberAdd, async member => {
   if (!channel?.isTextBased()) return;
 
   const welcome = new EmbedBuilder()
-    .setColor('#163B6E')
+    .setColor('#00BFFF')
     .setTitle('NOVI MEMBER')
     .setDescription(
       `<:haos_love:1530984544080232568> Ćao <@${member.id}>, dobrodošao/la na 🌴 ⨯ HAOS\n\n` +
@@ -441,7 +441,7 @@ client.on(Events.MessageCreate, async message => {
     const percent = Math.min(100, Math.floor((data.xp / requiredXP) * 100));
 
     const rankEmbed = new EmbedBuilder()
-      .setColor('#163B6E')
+      .setColor('#00BFFF')
       .setAuthor({ name: targetUser.username, iconURL: avatar })
       .setDescription(
         `**Level:** ${data.level}   **XP:** ${data.xp.toLocaleString('sr-RS')} / ${requiredXP.toLocaleString('sr-RS')}   **Rank:** #${rank || '—'}\n` +
@@ -477,7 +477,7 @@ client.on(Events.MessageCreate, async message => {
     }
 
     const leaderboardEmbed = new EmbedBuilder()
-      .setColor('#163B6E')
+      .setColor('#00BFFF')
       .setTitle('HAOS • Level leaderboard')
       .setDescription(rows.join('\n'));
 
@@ -492,7 +492,7 @@ client.on(Events.MessageCreate, async message => {
       .indexOf(targetUser.id) + 1;
 
     const voiceEmbed = new EmbedBuilder()
-      .setColor('#163B6E')
+      .setColor('#00BFFF')
       .setAuthor({
         name: targetUser.username,
         iconURL: targetUser.displayAvatarURL({ size: 256 })
@@ -527,7 +527,7 @@ client.on(Events.MessageCreate, async message => {
     }
 
     const voiceLeaderboard = new EmbedBuilder()
-      .setColor('#163B6E')
+      .setColor('#00BFFF')
       .setTitle('HAOS • Voice leaderboard')
       .setDescription(rows.join('\n'));
 
@@ -631,7 +631,7 @@ client.on(Events.MessageCreate, async message => {
 
   if (command === 'levels') {
     const levelsEmbed = new EmbedBuilder()
-      .setColor('#163B6E')
+      .setColor('#00BFFF')
       .setTitle('HAOS • Leveling')
       .setDescription(
         '**.level [@korisnik]** — profil i XP\n' +
@@ -651,7 +651,7 @@ client.on(Events.MessageCreate, async message => {
 
   if (logChannel) {
     const logEmbed = new EmbedBuilder()
-      .setColor('#163B6E')
+      .setColor('#00BFFF')
       .setTitle('📋 Korišćena komanda')
       .addFields(
         {
@@ -706,7 +706,7 @@ if (command === 'lb' || command === 'leaderboard') {
         .join('\n');
 
       const lbEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:4301boom:1559281123056549888> Haos Client — Rang Lista Pozivnica')
         .setDescription(
           '🏆 **TOP 10 POZIVATELJA**\n\n' +
@@ -725,7 +725,7 @@ if (command === 'lb' || command === 'leaderboard') {
   if (['kanal', 'obavestenja', 'news'].includes(command)) {
     if (!message.member.permissions.has(PermissionFlagsBits.ManageMessages)) {
       const noPermEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
         .setDescription('> Nemate potrebne dozvole za slanje ovog obaveštenja.');
       return message.reply({ embeds: [noPermEmbed] });
@@ -733,7 +733,7 @@ if (command === 'lb' || command === 'leaderboard') {
 
     try {
       const newsEmbed = new EmbedBuilder()
-        .setColor('#163B6E') // Narandžasta boja ivice sa slike
+        .setColor('#00BFFF') // Narandžasta boja ivice sa slike
         .setTitle('🔊 Custom Voice Channel & Role — Haos Server')
         .setThumbnail(message.guild.iconURL({ dynamic: true })) // Automatski stavlja ikonicu tvog servera gore desno kao na slici
         .setDescription(
@@ -755,7 +755,7 @@ if (command === 'lb' || command === 'leaderboard') {
     } catch (error) {
       console.error('Greska pri slanju obavestenja:', error);
       const failEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
         .setDescription('> Došlo je do greške prilikom slanja obaveštenja.');
       return message.reply({ embeds: [failEmbed] });
@@ -767,7 +767,7 @@ if (command === 'lb' || command === 'leaderboard') {
     // 1. Provera da li moderator ima dozvolu za upravljanje ulogama
     if (!message.member.permissions.has(PermissionFlagsBits.ManageRoles)) {
       const noPermEmbed = new EmbedBuilder()
-        .setColor('#163B6E') // CRVENA za grešku
+        .setColor('#00BFFF') // CRVENA za grešku
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
         .setDescription('- Nemate potrebne dozvole za upravljanje ulogama.');
       return message.reply({ embeds: [noPermEmbed] });
@@ -779,7 +779,7 @@ if (command === 'lb' || command === 'leaderboard') {
     // 2. Pogrešna upotreba (Ukucano samo .giverole)
     if (!target || !roleMention) {
       const usageEmbed = new EmbedBuilder()
-        .setColor('#163B6E') // NARANDŽASTA za info/uputstvo
+        .setColor('#00BFFF') // NARANDŽASTA za info/uputstvo
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — GiveRole')
         .setDescription(
           '- Pogrešno uneta komanda!\n' +
@@ -792,7 +792,7 @@ if (command === 'lb' || command === 'leaderboard') {
     // 3. Provera hijerarhije (Moderator ne može davati ulogu koja je ista ili veća od njegove)
     if (roleMention.position >= message.member.roles.highest.position && message.guild.ownerId !== message.author.id) {
       const rolePermEmbed = new EmbedBuilder()
-        .setColor('#163B6E') // CRVENA
+        .setColor('#00BFFF') // CRVENA
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
         .setDescription('- Ne možete dodeliti ulogu koja je **ista ili veća** od vaše najviše uloge!');
       return message.reply({ embeds: [rolePermEmbed] });
@@ -801,7 +801,7 @@ if (command === 'lb' || command === 'leaderboard') {
     // 4. Provera da li bot ima dovoljno visoku ulogu da dodeli traženu
     if (roleMention.position >= message.guild.members.me.roles.highest.position) {
       const botRoleEmbed = new EmbedBuilder()
-        .setColor('#163B6E') // CRVENA
+        .setColor('#00BFFF') // CRVENA
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
         .setDescription('- Ne mogu dodeliti ovu ulogu jer se nalazi iznad moje najviše uloge u podešavanjima servera.');
       return message.reply({ embeds: [botRoleEmbed] });
@@ -810,7 +810,7 @@ if (command === 'lb' || command === 'leaderboard') {
     // 5. Provera da li član već ima tu ulogu
     if (target.roles.cache.has(roleMention.id)) {
       const alreadyHasEmbed = new EmbedBuilder()
-        .setColor('#163B6E') // CRVENA
+        .setColor('#00BFFF') // CRVENA
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
         .setDescription(`- Korisnik ${target.user} već ima ulogu ${roleMention}!`);
       return message.reply({ embeds: [alreadyHasEmbed] });
@@ -823,7 +823,7 @@ if (command === 'lb' || command === 'leaderboard') {
         `Korisnik: ${target.user.tag} (${target.id})\nUloga: ${roleMention.name}\nModerator: ${message.author.tag}`);
 
       const successEmbed = new EmbedBuilder()
-        .setColor('#163B6E') // LIME ZELENA za uspešnu komandu
+        .setColor('#00BFFF') // LIME ZELENA za uspešnu komandu
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Dodeljena Uloga')
         .setDescription(
           `- **Korisnik:** ${target.user}\n` +
@@ -836,7 +836,7 @@ if (command === 'lb' || command === 'leaderboard') {
     } catch (error) {
       console.error('Greska pri dodeli uloge:', error);
       const failEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
         .setDescription('- Došlo je do greške prilikom dodeljivanja uloge.');
       return message.reply({ embeds: [failEmbed] });
@@ -847,7 +847,7 @@ if (command === 'lb' || command === 'leaderboard') {
   if (['removerole', 'takeole'].includes(command)) {
     if (!message.member.permissions.has(PermissionFlagsBits.ManageRoles)) {
       const noPermEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
         .setDescription('- Nemate potrebne dozvole za uklanjanje uloga.');
       return message.reply({ embeds: [noPermEmbed] });
@@ -858,7 +858,7 @@ if (command === 'lb' || command === 'leaderboard') {
 
     if (!target || !roleMention) {
       const usageEmbed = new EmbedBuilder()
-        .setColor('#163B6E') // NARANDŽASTA za uputstvo
+        .setColor('#00BFFF') // NARANDŽASTA za uputstvo
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — RemoveRole')
         .setDescription(
           '- Pogrešno uneta komanda!\n' +
@@ -870,7 +870,7 @@ if (command === 'lb' || command === 'leaderboard') {
 
     if (roleMention.position >= message.member.roles.highest.position && message.guild.ownerId !== message.author.id) {
       const rolePermEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
         .setDescription('- Ne možete skinuti ulogu koja je **ista ili veća** od vaše najviše uloge!');
       return message.reply({ embeds: [rolePermEmbed] });
@@ -878,7 +878,7 @@ if (command === 'lb' || command === 'leaderboard') {
 
     if (!target.roles.cache.has(roleMention.id)) {
       const noRoleEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
         .setDescription(`- Korisnik ${target.user} nema ulogu ${roleMention}!`);
       return message.reply({ embeds: [noRoleEmbed] });
@@ -891,7 +891,7 @@ if (command === 'lb' || command === 'leaderboard') {
         `Korisnik: ${target.user.tag} (${target.id})\nUloga: ${roleMention.name}\nModerator: ${message.author.tag}`);
 
       const successEmbed = new EmbedBuilder()
-        .setColor('#163B6E') // LIME ZELENA za uspešnu komandu
+        .setColor('#00BFFF') // LIME ZELENA za uspešnu komandu
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Uklonjena Uloga')
         .setDescription(
           `- **Korisnik:** ${target.user}\n` +
@@ -904,7 +904,7 @@ if (command === 'lb' || command === 'leaderboard') {
     } catch (error) {
       console.error('Greska pri skidanju uloge:', error);
       const failEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
         .setDescription('- Došlo je do greške prilikom skidanja uloge.');
       return message.reply({ embeds: [failEmbed] });
@@ -917,7 +917,7 @@ if (command === 'mc' || command === 'membercount') {
     const guildIcon = message.guild.iconURL({ dynamic: true, size: 256 });
 
     const mcEmbed = new EmbedBuilder()
-      .setColor('#163B6E')
+      .setColor('#00BFFF')
       .setTitle('<:haostop:1559305680848949288> Haos Client — Membercount')
       .setThumbnail(guildIcon)
       .setDescription(
@@ -935,7 +935,7 @@ if (command === 'mc' || command === 'membercount') {
       const owner = await guild.fetchOwner();
 
       const serverEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:46005info11:1559323801387401336> Haos Client — Server Info')
         .setThumbnail(guild.iconURL({ dynamic: true, size: 1024 }))
         .setDescription(
@@ -956,7 +956,7 @@ if (command === 'mc' || command === 'membercount') {
     } catch (error) {
       console.error(error);
       const errEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
         .setDescription('- Došlo je do greške prilikom pribavljanja informacija o serveru.');
 
@@ -977,7 +977,7 @@ if (command === 'mc' || command === 'membercount') {
         .join(', ') || 'Nema uloga';
 
       const userEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:46005info11:1559323801387401336> Haos Client — User Info')
         .setThumbnail(user.displayAvatarURL({ dynamic: true, size: 1024 }))
         .setDescription(
@@ -996,7 +996,7 @@ if (command === 'mc' || command === 'membercount') {
     } catch (error) {
       console.error(error);
       const errEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
         .setDescription('- Došlo je do greške prilikom pribavljanja informacija o korisniku.');
 
@@ -1016,7 +1016,7 @@ if (command === 'mc' || command === 'membercount') {
         : message.author;
     } catch {
       const errorEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:985760memberserver:1558975144016216094> Haos Client — Greška')
         .setDescription('- Ne mogu pronaći navedenog korisnika.');
 
@@ -1030,7 +1030,7 @@ if (command === 'mc' || command === 'membercount') {
     });
 
     const embed = new EmbedBuilder()
-      .setColor('#163B6E')
+      .setColor('#00BFFF')
       .setTitle('<:61048photosfolder:1558977971920838656> Haos Client — Avatar')
       .setDescription(
         `- Avatar korisnika: ${targetUser}\n` +
@@ -1053,7 +1053,7 @@ if (command === 'mc' || command === 'membercount') {
         : await client.users.fetch(message.author.id, { force: true });
     } catch {
       const errorEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Ne mogu pronaći navedenog korisnika.');
 
@@ -1067,7 +1067,7 @@ if (command === 'mc' || command === 'membercount') {
 
     if (!bannerURL) {
       const noBannerEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription(`- Korisnik ${targetUser} nema postavljen baner.`);
 
@@ -1075,7 +1075,7 @@ if (command === 'mc' || command === 'membercount') {
     }
 
     const embed = new EmbedBuilder()
-      .setColor('#163B6E')
+      .setColor('#00BFFF')
       .setTitle('<:61048photosfolder:1558977971920838656> Haos Client — Banner')
       .setDescription(
         `- Baner korisnika: ${targetUser}\n` +
@@ -1091,7 +1091,7 @@ if (command === 'mc' || command === 'membercount') {
     // Provera dozvola za brisanje poruka
     if (!message.member.permissions.has(PermissionFlagsBits.ManageMessages)) {
       const noPermEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Nemate potrebne dozvole za brisanje poruka (`ManageMessages`).');
 
@@ -1103,7 +1103,7 @@ if (command === 'mc' || command === 'membercount') {
     // Provera da li je broj validan i u rasponu od 1 do 100
     if (isNaN(amount) || amount < 1 || amount > 100) {
       const usageEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:78160deleteguild:1559152462680555660> Haos Client — Purge')
         .setDescription(
           '- Pogrešna upotreba komande!\n' +
@@ -1125,7 +1125,7 @@ if (command === 'mc' || command === 'membercount') {
         `Broj obrisanih poruka: ${deletedMessages.size}\nKanal: ${message.channel}\nModerator: ${message.author.tag}`);
 
       const successEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:6728_true:1558944305283080232> Haos Client — Purge')
         .setDescription(
           `- Uspešno obrisano **${deletedMessages.size}** poruka u kanalu ${message.channel}.\n` +
@@ -1139,7 +1139,7 @@ if (command === 'mc' || command === 'membercount') {
     } catch (error) {
       console.error(error);
       const errEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription(
           '- Došlo je do greške prilikom brisanja poruka.\n' +
@@ -1155,7 +1155,7 @@ if (command === 'mc' || command === 'membercount') {
     // Provera dozvola za upravljanje kanalima
     if (!message.member.permissions.has(PermissionFlagsBits.ManageChannels)) {
       const noPermEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Nemate potrebne dozvole za brisanje i kreiranje kanala (`ManageChannels`).');
 
@@ -1164,7 +1164,7 @@ if (command === 'mc' || command === 'membercount') {
 
     // Embed za potvrdu
     const confirmEmbed = new EmbedBuilder()
-      .setColor('#163B6E')
+      .setColor('#00BFFF')
       .setTitle('<:816232alerted:1559287275119054849> Haos Client — Nuke Potvrda')
       .setDescription(
         '- Da li ste sigurni da želite obrisati i klonirati ovaj kanal?\n' +
@@ -1212,7 +1212,7 @@ if (command === 'mc' || command === 'membercount') {
 
           // Poruka i slika u novom kanalu
           const nukeEmbed = new EmbedBuilder()
-            .setColor('#163B6E')
+            .setColor('#00BFFF')
             .setTitle('<:4301boom:1559281123056549888> Haos Client — Nuke')
             .setDescription(
               `- Ovaj kanal je uspešno očišćen !\n` +
@@ -1226,7 +1226,7 @@ if (command === 'mc' || command === 'membercount') {
         }
       } else if (interaction.customId === 'cancel_nuke') {
         const cancelEmbed = new EmbedBuilder()
-          .setColor('#163B6E')
+          .setColor('#00BFFF')
           .setTitle('<:30748bannedrole:1558942653649916044> — Otkazano')
           .setDescription('- Nuke proces je uspešno otkazan.');
 
@@ -1238,7 +1238,7 @@ if (command === 'mc' || command === 'membercount') {
       // Ako niko nije kliknuo na vreme
       if (reason === 'time' && replyMsg.editable) {
         const timeoutEmbed = new EmbedBuilder()
-          .setColor('#163B6E')
+          .setColor('#00BFFF')
           .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Isteklo Vreme')
           .setDescription('- Vreme za potvrdu je isteklo. Nuke je otkazan.');
 
@@ -1279,7 +1279,7 @@ if (command === 'mc' || command === 'membercount') {
       );
 
       const embed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('⚠️ OPOMENA')
         .addFields(
           { name: '👤 Član', value: `${target.user.tag} (${target.id})` },
@@ -1331,8 +1331,7 @@ if (command === 'mc' || command === 'membercount') {
   };
     command = aliases[command] || command;
   if (!command) return;
-
-  const member = message.member;
+    const member = message.member;
   const target = message.mentions.members.first();
 
   const hasPermission = permission => {
@@ -1361,7 +1360,7 @@ if (command === 'mc' || command === 'membercount') {
       );
 
       const panel = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:392749ticket:1560685569544036494> Haos Client — Ticket Podrška')
         .setThumbnail(message.guild.iconURL({ dynamic: true }))
         .setDescription(
@@ -1382,7 +1381,7 @@ if (command === 'mc' || command === 'membercount') {
   
   if (command === 'help' || command === 'h') {
     const helpEmbed = new EmbedBuilder()
-      .setColor('#163B6E')
+      .setColor('#00BFFF')
       .setTitle('<:komande:1559305414003392622> Haos Client — Komande')
       .setDescription(
         '- Dobrodošli u meni pomoći za **Haos Client** bot.\n' +
@@ -1461,7 +1460,7 @@ if (command === 'mc' || command === 'membercount') {
       const endAt = Date.now() + duration;
 
       const startEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle(`${GW_EMOJI} HAOS GIVEAWAY`)
         .setDescription(
           `${GW_NAGRADA} **NAGRADA**\n` +
@@ -1504,7 +1503,7 @@ if (command === 'mc' || command === 'membercount') {
       const confirmation = await message.reply({
         embeds: [
           new EmbedBuilder()
-            .setColor('#163B6E')
+            .setColor('#00BFFF')
             .setDescription(
               `${GW_EMOJI} **Giveaway je uspešno pokrenut!**\n` +
               `${GW_NAGRADA} **Nagrada:** ${prize}\n` +
@@ -1538,14 +1537,14 @@ if (command === 'mc' || command === 'membercount') {
           await freshMessage.edit({
             embeds: [
               EmbedBuilder.from(currentEmbed)
-                .setColor('#163B6E')
+                .setColor('#00BFFF')
                 .setFooter({ text: 'GIVEAWAY ZAVRŠEN' })
             ]
           });
 
           if (participants.length === 0) {
             const noWinnerEmbed = new EmbedBuilder()
-              .setColor('#163B6E')
+              .setColor('#00BFFF')
               .setTitle(`${GW_EMOJI} GIVEAWAY ZAVRŠEN`)
               .setDescription(
                 `${GW_NAGRADA} **NAGRADA**\n${prize}\n\n` +
@@ -1563,7 +1562,7 @@ if (command === 'mc' || command === 'membercount') {
           const winnerMentions = winners.map(user => `<@${user.id}>`).join(', ');
 
           const resultEmbed = new EmbedBuilder()
-            .setColor('#163B6E')
+            .setColor('#00BFFF')
             .setTitle(`${GW_EMOJI} GIVEAWAY ZAVRŠEN`)
             .setDescription(
               `${GW_TROFEJ} **POBEDNIK${winners.length > 1 ? 'CI' : ''}**\n` +
@@ -1650,7 +1649,7 @@ if (command === 'mc' || command === 'membercount') {
             await giveawayMsg.edit({
               embeds: [
                 EmbedBuilder.from(originalEmbed)
-                  .setColor('#163B6E')
+                  .setColor('#00BFFF')
                   .setFooter({ text: 'GIVEAWAY ZAVRŠEN' })
               ]
             });
@@ -1678,7 +1677,7 @@ if (command === 'mc' || command === 'membercount') {
           await giveawayMsg.edit({
             embeds: [
               EmbedBuilder.from(originalEmbed)
-                .setColor('#163B6E')
+                .setColor('#00BFFF')
                 .setFooter({ text: 'GIVEAWAY ZAVRŠEN' })
             ]
           });
@@ -1687,7 +1686,7 @@ if (command === 'mc' || command === 'membercount') {
         const winnerMentions = winners.map(user => `<@${user.id}>`).join(', ');
 
         const resultEmbed = new EmbedBuilder()
-          .setColor('#163B6E')
+          .setColor('#00BFFF')
           .setTitle(
             `${GW_EMOJI} ${isReroll ? 'NOVO IZVLAČENJE' : 'GIVEAWAY ZAVRŠEN'}`
           )
@@ -1794,7 +1793,7 @@ if (command === 'mc' || command === 'membercount') {
   if (command === 'ban') {
     if (!message.member.permissions.has(PermissionFlagsBits.BanMembers)) {
       const noPermEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Nemate potrebne dozvole za banovanje članova.');
       return message.reply({ embeds: [noPermEmbed] });
@@ -1806,7 +1805,7 @@ if (command === 'mc' || command === 'membercount') {
    
  if (!query) {
       const usageEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Ban')
         .setDescription(
           `- **Pogrešno uneta komanda!**\n` +
@@ -1838,7 +1837,7 @@ if (command === 'mc' || command === 'membercount') {
 
     if (!targetId || targetId.length < 16) {
       const errEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Navedite validnog člana ili ispravan ID korisnika.');
       return message.reply({ embeds: [errEmbed] });
@@ -1846,7 +1845,7 @@ if (command === 'mc' || command === 'membercount') {
 
     if (targetId === message.author.id) {
       const selfEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Ne možete banovati sami sebe!');
       return message.reply({ embeds: [selfEmbed] });
@@ -1855,7 +1854,7 @@ if (command === 'mc' || command === 'membercount') {
     if (targetMember) {
       if (targetMember.roles.highest.position >= message.member.roles.highest.position && message.guild.ownerId !== message.author.id) {
         const roleEmbed = new EmbedBuilder()
-          .setColor('#163B6E')
+          .setColor('#00BFFF')
           .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
           .setDescription('- Ne možete banovati člana koji ima **istu ili veću ulogu** od vas!');
         return message.reply({ embeds: [roleEmbed] });
@@ -1863,7 +1862,7 @@ if (command === 'mc' || command === 'membercount') {
 
       if (!targetMember.bannable) {
         const botRoleEmbed = new EmbedBuilder()
-          .setColor('#163B6E')
+          .setColor('#00BFFF')
           .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
           .setDescription('- Ne mogu banovati ovog člana jer ima višu ulogu od bota.');
         return message.reply({ embeds: [botRoleEmbed] });
@@ -1874,7 +1873,7 @@ if (command === 'mc' || command === 'membercount') {
       await message.guild.members.ban(targetId, { reason: `${message.author.tag}: ${reason}` });
 
       const successEmbed = new EmbedBuilder()
-        .setColor('#163B6E') // Svetlo zelena za uspeh
+        .setColor('#00BFFF') // Svetlo zelena za uspeh
         .setTitle('<:deeban:1561106716391772392> Haos Client — Ban')
         .setDescription(
           `- **Korisnik:** ${targetUserTag}\n` +
@@ -1886,7 +1885,7 @@ if (command === 'mc' || command === 'membercount') {
     } catch (error) {
       console.error('Greska pri banovanju:', error);
       const failEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Došlo je do greške prilikom banovanja korisnika.');
       return message.reply({ embeds: [failEmbed] });
@@ -1897,7 +1896,7 @@ if (command === 'mc' || command === 'membercount') {
   if (command === 'unban') {
     if (!message.member.permissions.has(PermissionFlagsBits.BanMembers)) {
       const noPermEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Nemate potrebne dozvole za unbanovanje članova.');
       return message.reply({ embeds: [noPermEmbed] });
@@ -1908,7 +1907,7 @@ if (command === 'mc' || command === 'membercount') {
 
     if (!targetId || targetId.length < 16) {
       const usageEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Unban')
         .setDescription(
           `- **Pogrešno uneta komanda!**\n` +
@@ -1921,7 +1920,7 @@ if (command === 'mc' || command === 'membercount') {
       await message.guild.members.unban(targetId, `${message.author.tag}: ${reason}`);
 
       const successEmbed = new EmbedBuilder()
-        .setColor('#163B6E') // Svetlo zelena za uspeh
+        .setColor('#00BFFF') // Svetlo zelena za uspeh
         .setTitle('<:haos_unban:1561107843854106774>  Haos Client — Unban')
         .setDescription(
           `- **Korisnik:** <@${targetId}>\n` +
@@ -1932,7 +1931,7 @@ if (command === 'mc' || command === 'membercount') {
     } catch (error) {
       console.error('Greska pri unbanovanju:', error);
       const failEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Korisnik nije pronađen na listi banovanih ili je unet pogrešan ID.');
       return message.reply({ embeds: [failEmbed] });
@@ -2008,7 +2007,7 @@ if (command === 'mc' || command === 'membercount') {
     // 1. Provera da li moderator ima dozvolu
     if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
       const noPermEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Nemate potrebne dozvole za utišavanje članova.');
       return message.reply({ embeds: [noPermEmbed] });
@@ -2020,7 +2019,7 @@ if (command === 'mc' || command === 'membercount') {
 
     if (!target) {
       const errEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Mute')
         .setDescription('- Navedite člana koga želite mjutati.\n- Upotreba: `.mute @Korisnik [vreme: 10m/1h/1d] [razlog]`');
       return message.reply({ embeds: [errEmbed] });
@@ -2029,7 +2028,7 @@ if (command === 'mc' || command === 'membercount') {
     // 2. Zabrana mjutiranja samog sebe
     if (target.id === message.author.id) {
       const selfEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Ne možete utišati sami sebe!');
       return message.reply({ embeds: [selfEmbed] });
@@ -2038,7 +2037,7 @@ if (command === 'mc' || command === 'membercount') {
     // 3. Provera hijerarhije uloga
     if (target.roles.highest.position >= message.member.roles.highest.position && message.guild.ownerId !== message.author.id) {
       const roleEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Ne možete utišati člana koji ima **istu ili veću ulogu** od vas!');
       return message.reply({ embeds: [roleEmbed] });
@@ -2047,7 +2046,7 @@ if (command === 'mc' || command === 'membercount') {
     // 4. Provera da li bot ima dovoljnu ulogu
     if (!target.moderatable) {
       const botRoleEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Ne mogu utišati ovog člana jer ima veću ulogu od bota.');
       return message.reply({ embeds: [botRoleEmbed] });
@@ -2055,7 +2054,7 @@ if (command === 'mc' || command === 'membercount') {
 
     if (!durationInput) {
       const noTimeEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:69929muted:1559674637120700448> Haos Client — Mute')
         .setDescription('- Navedite trajanje mute-a (npr. `10m`, `1h`, `1d`).');
       return message.reply({ embeds: [noTimeEmbed] });
@@ -2068,7 +2067,7 @@ if (command === 'mc' || command === 'membercount') {
     else if (durationInput.endsWith('d')) durationMs = parseInt(durationInput) * 24 * 60 * 60 * 1000;
     else {
       const timeErrEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:69929muted:1559674637120700448> Haos Client — Mute')
         .setDescription('- Neispravan format vremena! Koristite `m` (minuti), `h` (sati) ili `d` (dani).');
       return message.reply({ embeds: [timeErrEmbed] });
@@ -2081,7 +2080,7 @@ if (command === 'mc' || command === 'membercount') {
         `Korisnik: ${target.user.tag} (${target.id})\nTrajanje: ${durationInput}\nModerator: ${message.author.tag}\nRazlog: ${reason}`);
 
       const muteEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:69929muted:1559674637120700448> Haos Client — Mute')
         .setDescription(
           `- **Korisnik:** ${target.user}\n` +
@@ -2095,7 +2094,7 @@ if (command === 'mc' || command === 'membercount') {
     } catch (error) {
       console.error('Greska pri mute-ovanju:', error);
       const failEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Došlo je do greške prilikom utišavanja člana.');
       return message.reply({ embeds: [failEmbed] });
@@ -2107,7 +2106,7 @@ if (command === 'mc' || command === 'membercount') {
     // 1. Provera dozvole
     if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
       const noPermEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Nemate potrebne dozvole za skidanje utišavanja.');
       return message.reply({ embeds: [noPermEmbed] });
@@ -2117,7 +2116,7 @@ if (command === 'mc' || command === 'membercount') {
 
     if (!target) {
       const errEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:6859unmute:1559674651880202351> Haos Client — Unmute')
         .setDescription('- Navedite člana kome želite skinuti mute.\n- Upotreba: `.unmute @Korisnik`');
       return message.reply({ embeds: [errEmbed] });
@@ -2126,7 +2125,7 @@ if (command === 'mc' || command === 'membercount') {
     // 2. Zabrana unmutiranja samog sebe
     if (target.id === message.author.id) {
       const selfEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Ne možete skinuti utišavanje sami sebi!');
       return message.reply({ embeds: [selfEmbed] });
@@ -2135,7 +2134,7 @@ if (command === 'mc' || command === 'membercount') {
     // 3. Provera da li je član uopšte utišan
     if (!target.isCommunicationDisabled()) {
       const notMutedEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Ovaj član trenutno nije utišan.');
       return message.reply({ embeds: [notMutedEmbed] });
@@ -2144,7 +2143,7 @@ if (command === 'mc' || command === 'membercount') {
     // 4. Provera hijerarhije uloga
     if (target.roles.highest.position >= message.member.roles.highest.position && message.guild.ownerId !== message.author.id) {
       const roleEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Ne možete skinuti utišavanje članu koji ima **istu ili veću ulogu** od vas!');
       return message.reply({ embeds: [roleEmbed] });
@@ -2157,7 +2156,7 @@ if (command === 'mc' || command === 'membercount') {
         `Korisnik: ${target.user.tag} (${target.id})\nModerator: ${message.author.tag}`);
 
       const unmuteEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:6859unmute:1559674651880202351> Haos Client — Unmute')
         .setDescription(
           `- **Korisnik:** ${target.user}\n` +
@@ -2170,7 +2169,7 @@ if (command === 'mc' || command === 'membercount') {
     } catch (error) {
       console.error('Greska pri unmute-ovanju:', error);
       const failEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Došlo je do greške prilikom skidanja utišavanja.');
       return message.reply({ embeds: [failEmbed] });
@@ -2182,7 +2181,7 @@ if (command === 'mc' || command === 'membercount') {
     // Provera dozvola za moderatora
     if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
       const noPermEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Nemate potrebne dozvole za opominjanje članova.');
 
@@ -2195,7 +2194,7 @@ if (command === 'mc' || command === 'membercount') {
     // Provera da li je korisnik označen
     if (!member) {
       const usageEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Warn')
         .setDescription(
           '- Pogrešna upotreba komande!\n' +
@@ -2208,7 +2207,7 @@ if (command === 'mc' || command === 'membercount') {
     // Zaštita: Ne možeš opomenuti sebe ili bota
     if (member.id === message.author.id) {
       const selfWarnEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Ne možete opomenuti sami sebe.');
 
@@ -2218,7 +2217,7 @@ if (command === 'mc' || command === 'membercount') {
     try {
       // Slanje privatne poruke opomenutom korisniku (opciono)
       const dmEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:233446highwarning:1559143434206314557> Haos Client — Opomena')
         .setDescription(
           `- Dobili ste opomenu na serveru **${message.guild.name}**!\n` +
@@ -2236,7 +2235,7 @@ if (command === 'mc' || command === 'membercount') {
 
       // Potvrda u kanalu gde je izvršena komanda
       const successEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('\<:6728_true:1558944305283080232> Haos Client — Warn')
         .setDescription(
           `- Uspešno opomenut korisnik: ${member.user}\n` +
@@ -2250,7 +2249,7 @@ if (command === 'mc' || command === 'membercount') {
     } catch (error) {
       console.error(error);
       const errEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Došlo je do greške prilikom slanja opomene.');
 
@@ -2263,7 +2262,7 @@ if (command === 'mc' || command === 'membercount') {
     // Provera dozvola za moderatora
     if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
       const noPermEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Greška')
         .setDescription('- Nemate potrebne dozvole za pregled opomena.');
 
@@ -2276,7 +2275,7 @@ if (command === 'mc' || command === 'membercount') {
     // Ako korisnik nema nijednu opomenu
     if (userWarns.length === 0) {
       const noWarnsEmbed = new EmbedBuilder()
-        .setColor('#163B6E')
+        .setColor('#00BFFF')
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Opomene')
         .setDescription(`- Korisnik ${member.user} nema nijednu aktivnu opomenu.`)
         .setTimestamp();
@@ -2290,7 +2289,7 @@ if (command === 'mc' || command === 'membercount') {
     ).join('\n');
 
     const warnsEmbed = new EmbedBuilder()
-      .setColor('#163B6E')
+      .setColor('#00BFFF')
       .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Opomene')
       .setDescription(
         `- **Korisnik:** ${member.user}\n` +
@@ -2347,7 +2346,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       });
 
       const welcomeEmbed = new EmbedBuilder()
-        .setColor('#163B6E') // Lime zelena za uspeh
+        .setColor('#00BFFF') // Lime zelena za uspeh
         .setTitle(`📩 Dobrodošli u vaš tiket, ${user.username}!`)
         .setDescription(
           `> Hvala što ste se obratili **Staff timu**.\n` +
@@ -2385,7 +2384,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
   // ZATVARANJE TIKETA PREKO DUGMETA
   if (interaction.customId === 'close_ticket') {
     const closeEmbed = new EmbedBuilder()
-      .setColor('#163B6E')
+      .setColor('#00BFFF')
       .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Zatvaranje')
       .setDescription('> Tiket će biti obrisan za **5 sekundi**...');
 
@@ -2397,7 +2396,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
   // ODGOVOR NA POMINJANJE BOTA (Tagovanje)
   if (message.mentions.has(client.user) && !message.mentions.everyone) {
     const mentionEmbed = new EmbedBuilder()
-      .setColor('#163B6E')
+      .setColor('#00BFFF')
       .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Mention')
       .setDescription(
         `- Ćao ${message.author}, ja sam personalizovani **Client** za **Haos** balkanski server.\n` +
@@ -2553,7 +2552,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
       // PRELEPO PODEŠEN EMBED ZAN OTVOREN TIKET
       const welcomeEmbed = new EmbedBuilder()
-        .setColor('#163B6E') // Narandžasta ivica
+        .setColor('#00BFFF') // Narandžasta ivica
         .setTitle('<:392749ticket:1560685569544036494> Haos Client — Otvoren Tiket')
         .setThumbnail(guild.iconURL({ dynamic: true }))
         .setDescription(
@@ -2602,7 +2601,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     }
 
     const closedEmbed = new EmbedBuilder()
-      .setColor('#163B6E') // Crvena boja
+      .setColor('#00BFFF') // Crvena boja
       .setTitle('<:998751lock:1560769368650948658> Haos Client — Tiket Zatvoren')
       .setThumbnail(interaction.guild.iconURL({ dynamic: true }))
       .setDescription(
@@ -2623,7 +2622,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
   // 3. TRAJNO BRISANJE TIKETA (Crvena boja)
   if (interaction.customId === 'haos_ticket_delete') {
     const deleteEmbed = new EmbedBuilder()
-      .setColor('#163B6E') // Crvena boja
+      .setColor('#00BFFF') // Crvena boja
       .setTitle('<:78160deleteguild:1559152462680555660> Haos Client — Brisanje')
       .setDescription('- Tiket će biti obrisan za **5 sekundi**...');
 
