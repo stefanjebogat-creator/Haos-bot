@@ -86,6 +86,23 @@ function getLevelUser(guildId, userId) {
   return data;
 }
 
+// Zajednički crno-zlatni stil za SVE HAOS leveling embedove.
+function haosLevelEmbed(title, description, thumbnailURL = null) {
+  const levelEmbed = new EmbedBuilder()
+    .setColor('#F28C28')
+    .setAuthor({
+      name: 'HAOS™  👑  LEVELING SYSTEM',
+      iconURL: client.user.displayAvatarURL({ size: 128 })
+    })
+    .setTitle(title)
+    .setDescription(description)
+    .setFooter({ text: 'HAOS™  •  LEVELING SYSTEM' })
+    .setTimestamp();
+
+  if (thumbnailURL) levelEmbed.setThumbnail(thumbnailURL);
+  return levelEmbed;
+}
+
 async function sendLevelUp(message, newLevel) {
   const guildData = getGuildLevelData(message.guild.id);
   const channel = guildData.channelId
@@ -94,16 +111,21 @@ async function sendLevelUp(message, newLevel) {
 
   if (!channel?.isTextBased()) return;
 
-  const levelEmbed = new EmbedBuilder()
-    .setColor(COLOR)
-    .setTitle('🎉 HAOS — LEVEL UP!')
-    .setDescription(
-      `Čestitamo ${message.author}!\n\n` +
-      `Dostigao/la si **LEVEL ${newLevel}**!`
-    )
-    .setThumbnail(message.author.displayAvatarURL({ size: 256 }))
-    .setFooter({ text: 'HAOS • Leveling System' })
-    .setTimestamp();
+  const levelEmbed = haosLevelEmbed(
+    '👑  HAOS — LEVEL UP!',
+    `🎊 **ČESTITAMO ${message.author}!**\n\n` +
+    `Dostigao/la si novi nivo!\n` +
+    `> 🏆  **LEVEL ${newLevel}**\n\n` +
+    '━━━━━━━━━━━━━━━━━━━━\n' +
+    '🔥 Nastavi da pišeš i osvajaj još XP-a!',
+    message.author.displayAvatarURL({ size: 512, extension: 'png' })
+  );
+
+  levelEmbed.addFields({
+    name: '✨ NOVI RANG',
+    value: `**LEVEL ${newLevel}**  •  HAOS MEMBER`,
+    inline: true
+  });
 
   await channel.send({
     embeds: [levelEmbed],
@@ -345,21 +367,23 @@ client.on(Events.MessageCreate, async message => {
     const progressBar = '🟧'.repeat(filled) + '⬛'.repeat(10 - filled);
     const rank = getLevelRank(message.guild.id, targetUser.id);
 
-    const rankEmbed = new EmbedBuilder()
-      .setColor(COLOR)
-      .setTitle('⭐ HAOS — LEVEL')
-      .setThumbnail(targetUser.displayAvatarURL({ size: 256 }))
-      .setDescription(
-        `**Korisnik:** ${targetUser}\n` +
-        `🏆 **Level:** ${data.level}\n` +
-        `⭐ **XP:** ${data.xp} / ${requiredXP}\n` +
-        `📊 **Napredak:** ${progress}%\n` +
-        `${progressBar}\n\n` +
-        `🥇 **Rang:** #${rank || '—'}\n` +
-        `💎 **Ukupno XP:** ${data.totalXp}`
-      )
-      .setFooter({ text: 'HAOS • Leveling System' })
-      .setTimestamp();
+    const rankEmbed = haosLevelEmbed(
+      '👑  HAOS — PLAYER PROFILE',
+      `**ČLAN:** ${targetUser}\n` +
+      '━━━━━━━━━━━━━━━━━━━━\n' +
+      `🏆 **TRENUTNI LEVEL**\n> **LEVEL ${data.level}**\n\n` +
+      `⭐ **XP NAPREDAK**  —  **${data.xp} / ${requiredXP} XP**\n` +
+      `${progressBar}  **${progress}%**\n\n` +
+      '━━━━━━━━━━━━━━━━━━━━\n' +
+      `🥇 **SERVER RANG:**  #${rank || '—'}\n` +
+      `💎 **UKUPNO OSVOJENO XP:**  ${data.totalXp}`,
+      targetUser.displayAvatarURL({ size: 512, extension: 'png' })
+    );
+    rankEmbed.addFields(
+      { name: '👑 LEVEL', value: `**${data.level}**`, inline: true },
+      { name: '⚡ DO SLEDEĆEG', value: `**${requiredXP - data.xp} XP**`, inline: true },
+      { name: '🏅 RANG', value: `**#${rank || '—'}**`, inline: true }
+    );
 
     return message.reply({ embeds: [rankEmbed] });
   }
@@ -374,7 +398,10 @@ client.on(Events.MessageCreate, async message => {
       .slice(0, 10);
 
     if (!users.length) {
-      return message.reply('❌ Još nema podataka za Level leaderboard.');
+      return message.reply({ embeds: [haosLevelEmbed(
+        '🏆  HAOS — LEVEL LEADERBOARD',
+        'Još nema podataka za rang-listu.\n\n💬 Pišite na serveru i počnite da osvajate XP!'
+      )] });
     }
 
     const rows = await Promise.all(users.map(async ([id, data], index) => {
@@ -382,29 +409,31 @@ client.on(Events.MessageCreate, async message => {
       const name = user ? user.username : `Korisnik ${id}`;
       const medals = ['🥇', '🥈', '🥉'];
       const place = medals[index] || `**#${index + 1}**`;
-      return `${place} **${name}** — Level **${data.level}** • ${data.totalXp} XP`;
+      return `${place}  **${name}**\n> 👑 Level **${data.level}**  •  ⚡ **${data.totalXp} XP**`;
     }));
 
-    const leaderboardEmbed = new EmbedBuilder()
-      .setColor(COLOR)
-      .setTitle('🏆 HAOS — LEVEL LEADERBOARD')
-      .setDescription(rows.join('\n'))
-      .setFooter({ text: 'TOP 10 najaktivnijih članova' })
-      .setTimestamp();
+    const leaderboardEmbed = haosLevelEmbed(
+      '🏆  HAOS — TOP 10 PLAYERS',
+      '🔥 **NAJJAČI ČLANOVI SERVERA**\n' +
+      '━━━━━━━━━━━━━━━━━━━━\n' +
+      rows.join('\n\n') +
+      '\n\n━━━━━━━━━━━━━━━━━━━━\n' +
+      '⚡ Nastavi da osvajaš XP i popni se na vrh!'
+    );
 
     return message.reply({ embeds: [leaderboardEmbed] });
   }
 
   if (command === 'addxp') {
     if (!message.member.permissions.has(PermissionFlagsBits.Administrator)) {
-      return message.reply('❌ Samo administratori mogu koristiti ovu komandu.');
+      return message.reply({ embeds: [haosLevelEmbed('🛡️  HAOS — ADMIN ONLY', 'Ovu leveling komandu mogu koristiti samo administratori.')] });
     }
 
     const target = message.mentions.users.first();
     const amount = Number(args[1]);
 
     if (!target || !Number.isInteger(amount) || amount < 1 || amount > 1000000) {
-      return message.reply('Upotreba: `.addxp @korisnik 500`');
+      return message.reply({ embeds: [haosLevelEmbed('⚠️  HAOS — WRONG USAGE', 'Upotreba: `.addxp @korisnik 500`')] });
     }
 
     const data = getLevelUser(message.guild.id, target.id);
@@ -420,22 +449,23 @@ client.on(Events.MessageCreate, async message => {
 
     saveLeveling();
 
-    return message.reply(
+    return message.reply({ embeds: [haosLevelEmbed(
+      '⚡  HAOS — XP UPDATED',
       `✅ Korisniku ${target} dodato je **${amount} XP**.` +
-      (gainedLevels ? ` Dostignut novi nivo: **${data.level}**!` : '')
-    );
+      (gainedLevels ? `\n\n👑 Novi dostignuti nivo: **LEVEL ${data.level}**!` : '')
+    )] });
   }
 
   if (command === 'setlevel') {
     if (!message.member.permissions.has(PermissionFlagsBits.Administrator)) {
-      return message.reply('❌ Samo administratori mogu koristiti ovu komandu.');
+      return message.reply({ embeds: [haosLevelEmbed('🛡️  HAOS — ADMIN ONLY', 'Ovu leveling komandu mogu koristiti samo administratori.')] });
     }
 
     const target = message.mentions.users.first();
     const level = Number(args[1]);
 
     if (!target || !Number.isInteger(level) || level < 0 || level > 10000) {
-      return message.reply('Upotreba: `.setlevel @korisnik 10`');
+      return message.reply({ embeds: [haosLevelEmbed('⚠️  HAOS — WRONG USAGE', 'Upotreba: `.setlevel @korisnik 10`')] });
     }
 
     const data = getLevelUser(message.guild.id, target.id);
@@ -448,16 +478,19 @@ client.on(Events.MessageCreate, async message => {
     }
 
     saveLeveling();
-    return message.reply(`✅ Korisniku ${target} postavljen je **LEVEL ${level}**.`);
+    return message.reply({ embeds: [haosLevelEmbed(
+      '👑  HAOS — LEVEL SET',
+      `✅ Korisniku ${target} postavljen je **LEVEL ${level}**.`
+    )] });
   }
 
   if (command === 'resetxp') {
     if (!message.member.permissions.has(PermissionFlagsBits.Administrator)) {
-      return message.reply('❌ Samo administratori mogu koristiti ovu komandu.');
+      return message.reply({ embeds: [haosLevelEmbed('🛡️  HAOS — ADMIN ONLY', 'Ovu leveling komandu mogu koristiti samo administratori.')] });
     }
 
     const target = message.mentions.users.first();
-    if (!target) return message.reply('Upotreba: `.resetxp @korisnik`');
+    if (!target) return message.reply({ embeds: [haosLevelEmbed('⚠️  HAOS — WRONG USAGE', 'Upotreba: `.resetxp @korisnik`')] });
 
     const data = getLevelUser(message.guild.id, target.id);
     data.xp = 0;
@@ -465,35 +498,43 @@ client.on(Events.MessageCreate, async message => {
     data.totalXp = 0;
     saveLeveling();
 
-    return message.reply(`✅ Level i XP za ${target} su resetovani.`);
+    return message.reply({ embeds: [haosLevelEmbed(
+      '♻️  HAOS — LEVEL RESET',
+      `Level i XP za ${target} su uspešno resetovani.`
+    )] });
   }
 
   if (command === 'levelchannel') {
     if (!message.member.permissions.has(PermissionFlagsBits.Administrator)) {
-      return message.reply('❌ Samo administratori mogu koristiti ovu komandu.');
+      return message.reply({ embeds: [haosLevelEmbed('🛡️  HAOS — ADMIN ONLY', 'Ovu leveling komandu mogu koristiti samo administratori.')] });
     }
 
     const channel = message.mentions.channels.first() || message.channel;
     getGuildLevelData(message.guild.id).channelId = channel.id;
     saveLeveling();
 
-    return message.reply(`✅ Level Up poruke će se slati u ${channel}.`);
+    return message.reply({ embeds: [haosLevelEmbed(
+      '📢  HAOS — LEVEL CHANNEL',
+      `Level Up poruke će se od sada slati u ${channel}.\n\n👑 HAOS leveling obaveštenja su podešena.`
+    )] });
   }
 
   if (command === 'levels') {
-    return message.reply({
-      embeds: [
-        embed(
-          '⭐ HAOS — LEVELING KOMANDE',
-          '`.rank [@korisnik]` — Prikazuje level i XP\n' +
-          '`.leveltop` — TOP 10 članova po levelu\n' +
-          '`.addxp @korisnik [količina]` — Dodaje XP (admin)\n' +
-          '`.setlevel @korisnik [nivo]` — Postavlja nivo (admin)\n' +
-          '`.resetxp @korisnik` — Resetuje level i XP (admin)\n' +
-          '`.levelchannel [#kanal]` — Podešava kanal za Level Up poruke (admin)'
-        )
-      ]
-    });
+    const levelsEmbed = haosLevelEmbed(
+      '📜  HAOS — LEVELING COMMANDS',
+      '**👤 KOMANDE ZA ČLANOVE**\n' +
+      '> `.rank [@korisnik]` — Profil, level i XP\n' +
+      '> `.leveltop` — TOP 10 članova\n' +
+      '\n━━━━━━━━━━━━━━━━━━━━\n' +
+      '**🛡️ ADMINISTRATORSKE KOMANDE**\n' +
+      '> `.addxp @korisnik [količina]` — Dodaje XP\n' +
+      '> `.setlevel @korisnik [nivo]` — Postavlja level\n' +
+      '> `.resetxp @korisnik` — Resetuje level i XP\n' +
+      '> `.levelchannel [#kanal]` — Podešava kanal\n' +
+      '\n👑 **HAOS™ LEVELING SYSTEM**'
+    );
+    levelsEmbed.addFields({ name: '💡 INFO', value: 'Članovi dobijaju **15–25 XP** na svakih 60 sekundi aktivnog pisanja.' });
+    return message.reply({ embeds: [levelsEmbed] });
   }
 
   // LOGOVANJE KORIŠĆENIH KOMANDI
@@ -1221,8 +1262,7 @@ if (command === 'mc' || command === 'membercount') {
           `- **Server:** 🍁 × HAOS\n` +
           `- **Svrha:** Prijave za Staff / Podrška`
         )
-
-      await message.channel.send({
+            await message.channel.send({
         embeds: [panel],
         components: [row]
       });
@@ -1242,7 +1282,7 @@ if (command === 'mc' || command === 'membercount') {
         '- Pregled svih dostupnih komandi grupisanih po kategorijama:\n\n' +
 
         // KATEGORIJA: MODERACIJA
-                '<:haosmod:1559305155755638804> **Moderacija & Administracija**\n' +
+        '<:haosmod:1559305155755638804> **Moderacija & Administracija**\n' +
         '- `.warn` `[@korisnik]` `[razlog]` — Daje opomenu korisniku\n' +
         '- `.warnings` `[@korisnik]` — Prikazuje listu opomena za korisnika\n' +
         '- `.purge` / `.clear` `[broj]` — Masovno briše poruke (1-100)\n' +
