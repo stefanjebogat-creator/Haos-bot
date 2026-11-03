@@ -73,6 +73,7 @@ function getLevelUser(guildId, userId) {
       xp: 0,
       level: 0,
       totalXp: 0,
+      voiceMs: 0,
       lastXpAt: 0
     };
   }
@@ -81,26 +82,83 @@ function getLevelUser(guildId, userId) {
   if (typeof data.xp !== 'number') data.xp = 0;
   if (typeof data.level !== 'number') data.level = 0;
   if (typeof data.totalXp !== 'number') data.totalXp = data.xp;
+  if (typeof data.voiceMs !== 'number') data.voiceMs = 0;
   if (typeof data.lastXpAt !== 'number') data.lastXpAt = 0;
 
   return data;
 }
 
-// Zajednički crno-zlatni stil za SVE HAOS leveling embedove.
+// Zajednički čist, moderan HAOS leveling stil (inspirisan Arcane profilom).
+// Discord embedovi imaju ograničenja: ne podržavaju proizvoljan raspored/slike kao web kartice.
 function haosLevelEmbed(title, description, thumbnailURL = null) {
   const levelEmbed = new EmbedBuilder()
-    .setColor('#F28C28')
+    .setColor('#2B2D31')
     .setAuthor({
-      name: 'HAOS™  👑  LEVELING SYSTEM',
+      name: 'HAOS  •  LEVELING',
       iconURL: client.user.displayAvatarURL({ size: 128 })
     })
     .setTitle(title)
     .setDescription(description)
-    .setFooter({ text: 'HAOS™  •  LEVELING SYSTEM' })
+    .setFooter({ text: 'HAOS  •  LEVELING SYSTEM' })
     .setTimestamp();
 
   if (thumbnailURL) levelEmbed.setThumbnail(thumbnailURL);
   return levelEmbed;
+}
+
+function makeLevelProgressBar(current, required, size = 18) {
+  const percent = required > 0 ? Math.min(1, current / required) : 0;
+  const filled = Math.round(percent * size);
+  return `${'▰'.repeat(filled)}${'▱'.repeat(size - filled)}  **${Math.floor(percent * 100)}%**`;
+}
+
+
+// ==========================================
+// HAOS VOICE TIME SISTEM
+// ==========================================
+const activeVoiceSessions = new Map();
+
+function voiceSessionKey(guildId, userId) {
+  return `${guildId}:${userId}`;
+}
+
+function formatVoiceTime(milliseconds) {
+  const totalMinutes = Math.floor(Math.max(0, milliseconds) / 60000);
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+  const parts = [];
+  if (days) parts.push(`${days}d`);
+  if (hours || days) parts.push(`${hours}h`);
+  parts.push(`${minutes}m`);
+  return parts.join(' ');
+}
+
+function getVoiceTime(guildId, userId) {
+  const data = getLevelUser(guildId, userId);
+  const startedAt = activeVoiceSessions.get(voiceSessionKey(guildId, userId));
+  return data.voiceMs + (startedAt ? Date.now() - startedAt : 0);
+}
+
+function startVoiceSession(member) {
+  if (!member || member.user?.bot || !member.voice?.channelId) return;
+  if (member.voice.channelId === member.guild.afkChannelId) return;
+
+  const key = voiceSessionKey(member.guild.id, member.id);
+  if (!activeVoiceSessions.has(key)) {
+    activeVoiceSessions.set(key, Date.now());
+  }
+}
+
+function finishVoiceSession(guildId, userId) {
+  const key = voiceSessionKey(guildId, userId);
+  const startedAt = activeVoiceSessions.get(key);
+  if (!startedAt) return;
+
+  const data = getLevelUser(guildId, userId);
+  data.voiceMs += Math.max(0, Date.now() - startedAt);
+  activeVoiceSessions.delete(key);
+  saveLeveling();
 }
 
 async function sendLevelUp(message, newLevel) {
@@ -111,21 +169,19 @@ async function sendLevelUp(message, newLevel) {
 
   if (!channel?.isTextBased()) return;
 
+  const data = getLevelUser(message.guild.id, message.author.id);
+  const requiredXP = xpForNextLevel(newLevel);
+  const rank = getLevelRank(message.guild.id, message.author.id);
+
   const levelEmbed = haosLevelEmbed(
-    '👑  HAOS — LEVEL UP!',
-    `🎊 **ČESTITAMO ${message.author}!**\n\n` +
-    `Dostigao/la si novi nivo!\n` +
-    `> 🏆  **LEVEL ${newLevel}**\n\n` +
-    '━━━━━━━━━━━━━━━━━━━━\n' +
-    '🔥 Nastavi da pišeš i osvajaj još XP-a!',
+    '🎉  LEVEL UP!',
+    `**${message.author}** je dostigao/la novi nivo!\n\n` +
+    `## LEVEL ${newLevel}\n` +
+    `**XP:** ${data.xp.toLocaleString('sr-RS')} / ${requiredXP.toLocaleString('sr-RS')}\n` +
+    `${makeLevelProgressBar(data.xp, requiredXP)}\n\n` +
+    `**Server rank:** #${rank || '—'}`,
     message.author.displayAvatarURL({ size: 512, extension: 'png' })
   );
-
-  levelEmbed.addFields({
-    name: '✨ NOVI RANG',
-    value: `**LEVEL ${newLevel}**  •  HAOS MEMBER`,
-    inline: true
-  });
 
   await channel.send({
     embeds: [levelEmbed],
@@ -174,6 +230,7 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildVoiceStates,
     GatewayIntentBits.MessageContent
   ]
 });
@@ -289,11 +346,43 @@ function updateBotStatus() {
 client.once(Events.ClientReady, bot => {
   console.log(`Bot je online: ${bot.user.tag}`);
 
+  // Počinje praćenje članova koji su već u voice kanalima kada se bot pokrene.
+  for (const guild of bot.guilds.cache.values()) {
+    for (const voiceState of guild.voiceStates.cache.values()) {
+      if (voiceState.channelId && voiceState.member) startVoiceSession(voiceState.member);
+    }
+  }
+
   // Postavlja status odmah pri paljenju
   updateBotStatus();
 
   // Osvežava broj članova na svakih 10 minuta
   setInterval(updateBotStatus, 5 * 60 * 1000);
+});
+
+// VOICE TIME TRACKING — ulazak, izlazak i promena voice kanala.
+client.on(Events.VoiceStateUpdate, (oldState, newState) => {
+  const member = newState.member || oldState.member;
+  if (!member || member.user?.bot) return;
+
+  const guildId = newState.guild.id;
+  const userId = member.id;
+  const wasTracked = activeVoiceSessions.has(voiceSessionKey(guildId, userId));
+
+  const wasInCountedChannel = Boolean(
+    oldState.channelId && oldState.channelId !== oldState.guild.afkChannelId
+  );
+  const isInCountedChannel = Boolean(
+    newState.channelId && newState.channelId !== newState.guild.afkChannelId
+  );
+
+  if (wasTracked && (!isInCountedChannel || oldState.channelId !== newState.channelId)) {
+    finishVoiceSession(guildId, userId);
+  }
+
+  if (isInCountedChannel && (!wasInCountedChannel || oldState.channelId !== newState.channelId)) {
+    startVoiceSession(member);
+  }
 });
 
 // WELCOME PORUKA
@@ -362,27 +451,24 @@ client.on(Events.MessageCreate, async message => {
     const targetUser = message.mentions.users.first() || message.author;
     const data = getLevelUser(message.guild.id, targetUser.id);
     const requiredXP = xpForNextLevel(data.level);
-    const progress = Math.min(100, Math.floor((data.xp / requiredXP) * 100));
-    const filled = Math.floor(progress / 10);
-    const progressBar = '🟧'.repeat(filled) + '⬛'.repeat(10 - filled);
     const rank = getLevelRank(message.guild.id, targetUser.id);
 
     const rankEmbed = haosLevelEmbed(
-      '👑  HAOS — PLAYER PROFILE',
-      `**ČLAN:** ${targetUser}\n` +
-      '━━━━━━━━━━━━━━━━━━━━\n' +
-      `🏆 **TRENUTNI LEVEL**\n> **LEVEL ${data.level}**\n\n` +
-      `⭐ **XP NAPREDAK**  —  **${data.xp} / ${requiredXP} XP**\n` +
-      `${progressBar}  **${progress}%**\n\n` +
-      '━━━━━━━━━━━━━━━━━━━━\n' +
-      `🥇 **SERVER RANG:**  #${rank || '—'}\n` +
-      `💎 **UKUPNO OSVOJENO XP:**  ${data.totalXp}`,
+      `${targetUser.username}`,
+      `**Level ${data.level}**\n` +
+      `XP: **${data.xp.toLocaleString('sr-RS')} / ${requiredXP.toLocaleString('sr-RS')}**\n` +
+      `${makeLevelProgressBar(data.xp, requiredXP)}\n\n` +
+      `**Rank:** #${rank || '—'}\n` +
+      `**Overall XP:** ${data.totalXp.toLocaleString('sr-RS')}\n` +
+      `**Voice Time:** ${formatVoiceTime(getVoiceTime(message.guild.id, targetUser.id))}`,
       targetUser.displayAvatarURL({ size: 512, extension: 'png' })
     );
+
     rankEmbed.addFields(
-      { name: '👑 LEVEL', value: `**${data.level}**`, inline: true },
-      { name: '⚡ DO SLEDEĆEG', value: `**${requiredXP - data.xp} XP**`, inline: true },
-      { name: '🏅 RANG', value: `**#${rank || '—'}**`, inline: true }
+      { name: 'LEVEL', value: `**${data.level}**`, inline: true },
+      { name: 'XP TO NEXT', value: `**${(requiredXP - data.xp).toLocaleString('sr-RS')}**`, inline: true },
+      { name: 'SERVER RANK', value: `**#${rank || '—'}**`, inline: true },
+      { name: 'VOICE TIME', value: `**${formatVoiceTime(getVoiceTime(message.guild.id, targetUser.id))}**`, inline: false }
     );
 
     return message.reply({ embeds: [rankEmbed] });
@@ -399,28 +485,85 @@ client.on(Events.MessageCreate, async message => {
 
     if (!users.length) {
       return message.reply({ embeds: [haosLevelEmbed(
-        '🏆  HAOS — LEVEL LEADERBOARD',
-        'Još nema podataka za rang-listu.\n\n💬 Pišite na serveru i počnite da osvajate XP!'
+        'LEVEL LEADERBOARD',
+        'Još nema podataka za rang-listu. Pišite na serveru da biste počeli da osvajate XP.'
       )] });
     }
 
-    const rows = await Promise.all(users.map(async ([id, data], index) => {
-      const user = await client.users.fetch(id).catch(() => null);
-      const name = user ? user.username : `Korisnik ${id}`;
-      const medals = ['🥇', '🥈', '🥉'];
-      const place = medals[index] || `**#${index + 1}**`;
-      return `${place}  **${name}**\n> 👑 Level **${data.level}**  •  ⚡ **${data.totalXp} XP**`;
-    }));
-
+    const medals = ['🥇', '🥈', '🥉'];
     const leaderboardEmbed = haosLevelEmbed(
-      '🏆  HAOS — TOP 10 PLAYERS',
-      '🔥 **NAJJAČI ČLANOVI SERVERA**\n' +
-      '━━━━━━━━━━━━━━━━━━━━\n' +
-      rows.join('\n\n') +
-      '\n\n━━━━━━━━━━━━━━━━━━━━\n' +
-      '⚡ Nastavi da osvajaš XP i popni se na vrh!'
+      'HAOS™  •  LEADERBOARD',
+      '**TOP 10 MEMBERS**\n\n' +
+      'Rang-lista članova prema dostignutom levelu i ukupnom XP-u.'
     );
 
+    for (let index = 0; index < users.length; index++) {
+      const [id, data] = users[index];
+      const user = await client.users.fetch(id).catch(() => null);
+      const name = user ? user.username : `Korisnik ${id}`;
+      const requiredXP = xpForNextLevel(data.level);
+      const rankLabel = medals[index] || `**#${index + 1}**`;
+      const progress = makeLevelProgressBar(data.xp, requiredXP, 12);
+
+      leaderboardEmbed.addFields({
+        name: `${rankLabel}  ${name}  •  LVL ${data.level}`,
+        value: `XP: **${data.xp.toLocaleString('sr-RS')} / ${requiredXP.toLocaleString('sr-RS')}**  •  Overall: **${data.totalXp.toLocaleString('sr-RS')} XP**\n${progress}`,
+        inline: false
+      });
+    }
+
+    leaderboardEmbed.setFooter({ text: 'HAOS  •  Overall XP  •  Top 10' });
+    return message.reply({ embeds: [leaderboardEmbed] });
+  }
+
+  if (['voicetime', 'voice', 'vc'].includes(command)) {
+    const targetUser = message.mentions.users.first() || message.author;
+    const voiceMs = getVoiceTime(message.guild.id, targetUser.id);
+    const voiceEmbed = haosLevelEmbed(
+      '🔊  HAOS — VOICE TIME',
+      `**Member:** ${targetUser}\n` +
+      `**Total Voice Time:** ${formatVoiceTime(voiceMs)}\n\n` +
+      `Vreme se računa dok je član u voice kanalu na serveru.`,
+      targetUser.displayAvatarURL({ size: 512, extension: 'png' })
+    );
+    voiceEmbed.addFields(
+      { name: 'VOICE TIME', value: `**${formatVoiceTime(voiceMs)}**`, inline: true },
+      { name: 'STATUS', value: activeVoiceSessions.has(voiceSessionKey(message.guild.id, targetUser.id)) ? '**🟢 In Voice**' : '**⚪ Not in Voice**', inline: true }
+    );
+    return message.reply({ embeds: [voiceEmbed] });
+  }
+
+  if (['voicetop', 'voiceleaderboard', 'vctop'].includes(command)) {
+    const users = Object.entries(getGuildLevelData(message.guild.id).users)
+      .sort((a, b) => getVoiceTime(message.guild.id, b[0]) - getVoiceTime(message.guild.id, a[0]))
+      .slice(0, 10);
+
+    if (!users.length || users.every(([id]) => getVoiceTime(message.guild.id, id) <= 0)) {
+      return message.reply({ embeds: [haosLevelEmbed(
+        'HAOS™  •  VOICE LEADERBOARD',
+        'Još nema zabeleženog voice vremena. Uđite u voice kanal da biste počeli da skupljate vreme.'
+      )] });
+    }
+
+    const medals = ['🥇', '🥈', '🥉'];
+    const leaderboardEmbed = haosLevelEmbed(
+      'HAOS™  •  VOICE LEADERBOARD',
+      '**TOP 10 MEMBERS — VOICE TIME**\n\nČlanovi rangirani prema vremenu provedenom u voice kanalima.'
+    );
+
+    for (let index = 0; index < users.length; index++) {
+      const [id] = users[index];
+      const user = await client.users.fetch(id).catch(() => null);
+      const name = user ? user.username : `Korisnik ${id}`;
+      const totalTime = getVoiceTime(message.guild.id, id);
+      leaderboardEmbed.addFields({
+        name: `${medals[index] || `#${index + 1}`}  ${name}`,
+        value: `🔊 **${formatVoiceTime(totalTime)}**`,
+        inline: false
+      });
+    }
+
+    leaderboardEmbed.setFooter({ text: 'HAOS  •  Voice Time  •  Top 10' });
     return message.reply({ embeds: [leaderboardEmbed] });
   }
 
@@ -523,8 +666,10 @@ client.on(Events.MessageCreate, async message => {
     const levelsEmbed = haosLevelEmbed(
       '📜  HAOS — LEVELING COMMANDS',
       '**👤 KOMANDE ZA ČLANOVE**\n' +
-      '> `.rank [@korisnik]` — Profil, level i XP\n' +
-      '> `.leveltop` — TOP 10 članova\n' +
+      '> `.rank [@korisnik]` — Profil, level, XP i Voice Time\n' +
+      '> `.leveltop` — TOP 10 članova po levelu\n' +
+      '> `.voicetime [@korisnik]` — Prikazuje Voice Time\n' +
+      '> `.voicetop` — TOP 10 po Voice Time\n' +
       '\n━━━━━━━━━━━━━━━━━━━━\n' +
       '**🛡️ ADMINISTRATORSKE KOMANDE**\n' +
       '> `.addxp @korisnik [količina]` — Dodaje XP\n' +
@@ -533,7 +678,7 @@ client.on(Events.MessageCreate, async message => {
       '> `.levelchannel [#kanal]` — Podešava kanal\n' +
       '\n👑 **HAOS™ LEVELING SYSTEM**'
     );
-    levelsEmbed.addFields({ name: '💡 INFO', value: 'Članovi dobijaju **15–25 XP** na svakih 60 sekundi aktivnog pisanja.' });
+    levelsEmbed.addFields({ name: '💡 INFO', value: 'Članovi dobijaju **15–25 XP** na svakih 60 sekundi aktivnog pisanja. Voice Time se automatski računa dok su članovi u voice kanalima.' });
     return message.reply({ embeds: [levelsEmbed] });
   }
 
@@ -1199,9 +1344,7 @@ if (command === 'mc' || command === 'membercount') {
       );
     }
   }
-
-
-  const aliases = {
+    const aliases = {
     h: 'help',
     b: 'ban',
     ub: 'unban',
@@ -1262,7 +1405,8 @@ if (command === 'mc' || command === 'membercount') {
           `- **Server:** 🍁 × HAOS\n` +
           `- **Svrha:** Prijave za Staff / Podrška`
         )
-            await message.channel.send({
+
+      await message.channel.send({
         embeds: [panel],
         components: [row]
       });
@@ -2523,6 +2667,24 @@ client.on(Events.InteractionCreate, async (interaction) => {
     await interaction.reply({ embeds: [deleteEmbed] });
     setTimeout(() => interaction.channel.delete().catch(() => {}), 5000);
   }
+});
+
+// Sačuvaj trenutno prikupljeno voice vreme pri gašenju procesa.
+function saveActiveVoiceSessions() {
+  for (const key of [...activeVoiceSessions.keys()]) {
+    const [guildId, userId] = key.split(':');
+    finishVoiceSession(guildId, userId);
+  }
+}
+
+process.on('SIGINT', () => {
+  saveActiveVoiceSessions();
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  saveActiveVoiceSessions();
+  process.exit(0);
 });
 
 client.login(process.env.DISCORD_TOKEN);
