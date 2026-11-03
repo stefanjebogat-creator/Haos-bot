@@ -26,12 +26,12 @@ const COMMAND_LOG_CHANNEL_ID = '1559168762501005452';
     const userStats = getLevelUser(guildId, target.id);
 
     const neededXp = xpForNextLevel(userStats.level);
-    const progressBar = makeLevelProgressBar(userStats.xp, neededXp);
+    const progressBar = makeLevelProgressBar(userStats.xp, neededXp, 10);
 
     const rankEmbed = new EmbedBuilder()
-      .setColor(0x00BFFF) // Svetlo plava zimska boja sa slike
+      .setColor(0x00BFFF) // Svetlo plava zimska boja
       .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Rank')
-      .setThumbnail(target.displayAvatarURL({ dynamic: true })) // Avatar korisnika desno kao thumbnail
+      .setThumbnail(message.guild.iconURL({ dynamic: true })) // Slika servera desno kao kod membercount-a
       .setDescription(
         `- **Korisnik:** ${target}\n` +
         `- **Nivo:** \`${userStats.level}\`\n` +
