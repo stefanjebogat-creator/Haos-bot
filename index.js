@@ -19,65 +19,28 @@ const COLOR = '#00BFFF';
 const giveaways = new Map();
 const COMMAND_LOG_CHANNEL_ID = '1559168762501005452';
 
-// ==========================================
-// HAOS LEVELING SISTEM (Zimski fazon & Stil)
-// ==========================================
-const LEVELING_FILE = './leveling.json';
-const XP_COOLDOWN = 60 * 1000; // 60 sekundi po korisniku
-const XP_MIN = 15;
-const XP_MAX = 25;
+// RANK KOMANDA (.rank / .level)
+  if (['rank', 'level', 'lvl'].includes(command)) {
+    const target = message.mentions.users.first() || message.author;
+    const guildId = message.guild.id;
+    const userStats = getLevelUser(guildId, target.id);
 
-function loadLeveling() {
-  try {
-    const data = JSON.parse(fs.readFileSync(LEVELING_FILE, 'utf8'));
-    return data && typeof data === 'object' ? data : {};
-  } catch {
-    return {};
+    const neededXp = xpForNextLevel(userStats.level);
+    const progressBar = makeLevelProgressBar(userStats.xp, neededXp);
+
+    const rankEmbed = new EmbedBuilder()
+      .setColor(0x00BFFF) // Svetlo plava zimska boja sa slike
+      .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Rank')
+      .setThumbnail(target.displayAvatarURL({ dynamic: true })) // Avatar korisnika desno kao thumbnail
+      .setDescription(
+        `- **Korisnik:** ${target}\n` +
+        `- **Nivo:** \`${userStats.level}\`\n` +
+        `- **XP:** \`${userStats.xp} / ${neededXp}\`\n` +
+        `- **Progres:** ${progressBar}`
+      );
+
+    return message.reply({ embeds: [rankEmbed] });
   }
-}
-
-const levelingData = loadLeveling();
-
-function saveLeveling() {
-  try {
-    fs.writeFileSync(LEVELING_FILE, JSON.stringify(levelingData, null, 2));
-  } catch (error) {
-    console.error('Greška pri čuvanju leveling podataka:', error);
-  }
-}
-
-// XP potreban za sledeći nivo
-function xpForNextLevel(level) {
-  return 100 + (level * 50);
-}
-
-function getGuildLevelData(guildId) {
-  if (!levelingData[guildId]) {
-    levelingData[guildId] = { users: {}, channelId: null };
-  }
-  if (!levelingData[guildId].users) levelingData[guildId].users = {};
-  return levelingData[guildId];
-}
-
-function getLevelUser(guildId, userId) {
-  const guildData = getGuildLevelData(guildId);
-  if (!guildData.users[userId]) {
-    guildData.users[userId] = {
-      xp: 0,
-      level: 0,
-      totalXp: 0,
-      lastXpAt: 0
-    };
-  }
-  return guildData.users[userId];
-}
-
-// Funkcija za progress bar (crne/bele kockice sa procentima)
-function makeLevelProgressBar(current, required, size = 10) {
-  const percent = required > 0 ? Math.min(1, current / required) : 0;
-  const filled = Math.round(percent * size);
-  return `${'▰'.repeat(filled)}${'▱'.repeat(size - filled)} **${Math.floor(percent * 100)}%**`;
-}
 
 // ==========================================
 // HAOS VOICE TIME SISTEM
