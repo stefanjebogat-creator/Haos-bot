@@ -20,7 +20,7 @@ const giveaways = new Map();
 const COMMAND_LOG_CHANNEL_ID = '1559168762501005452';
 
 // ==========================================
-// HAOS LEVELING SISTEM
+// HAOS LEVELING SISTEM (Zimski fazon & Stil)
 // ==========================================
 const LEVELING_FILE = './leveling.json';
 const XP_COOLDOWN = 60 * 1000; // 60 sekundi po korisniku
@@ -46,7 +46,7 @@ function saveLeveling() {
   }
 }
 
-// XP potreban za sledeći nivo.
+// XP potreban za sledeći nivo
 function xpForNextLevel(level) {
   return 100 + (level * 50);
 }
@@ -55,57 +55,29 @@ function getGuildLevelData(guildId) {
   if (!levelingData[guildId]) {
     levelingData[guildId] = { users: {}, channelId: null };
   }
-
-  // Podrška i za slučaj da je fajl ranije napravljen u drugom formatu.
   if (!levelingData[guildId].users) levelingData[guildId].users = {};
-  if (!Object.prototype.hasOwnProperty.call(levelingData[guildId], 'channelId')) {
-    levelingData[guildId].channelId = null;
-  }
-
   return levelingData[guildId];
 }
 
 function getLevelUser(guildId, userId) {
   const guildData = getGuildLevelData(guildId);
-
   if (!guildData.users[userId]) {
     guildData.users[userId] = {
       xp: 0,
       level: 0,
       totalXp: 0,
-      voiceMs: 0,
       lastXpAt: 0
     };
   }
-
-  const data = guildData.users[userId];
-  if (typeof data.xp !== 'number') data.xp = 0;
-  if (typeof data.level !== 'number') data.level = 0;
-  if (typeof data.totalXp !== 'number') data.totalXp = data.xp;
-  if (typeof data.voiceMs !== 'number') data.voiceMs = 0;
-  if (typeof data.lastXpAt !== 'number') data.lastXpAt = 0;
-
-  return data;
+  return guildData.users[userId];
 }
 
-// Zajednički čist, moderan HAOS leveling stil (inspirisan Arcane profilom).
-// Discord embedovi imaju ograničenja: ne podržavaju proizvoljan raspored/slike kao web kartice.
-function haosLevelEmbed(title, description, thumbnailURL = null) {
-  const levelEmbed = new EmbedBuilder()
-    .setColor('#00BFFF')
-    .setTitle(title)
-    .setDescription(description);
-
-  if (thumbnailURL) levelEmbed.setThumbnail(thumbnailURL);
-  return levelEmbed;
-}
-
-function makeLevelProgressBar(current, required, size = 18) {
+// Funkcija za progress bar (crne/bele kockice sa procentima)
+function makeLevelProgressBar(current, required, size = 10) {
   const percent = required > 0 ? Math.min(1, current / required) : 0;
   const filled = Math.round(percent * size);
-  return `${'▰'.repeat(filled)}${'▱'.repeat(size - filled)}  **${Math.floor(percent * 100)}%**`;
+  return `${'▰'.repeat(filled)}${'▱'.repeat(size - filled)} **${Math.floor(percent * 100)}%**`;
 }
-
 
 // ==========================================
 // HAOS VOICE TIME SISTEM
