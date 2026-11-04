@@ -1340,10 +1340,15 @@ client.on(Events.MessageCreate, async message => {
     }
 
     const target = message.mentions.members.first();
-    const roleNameOrId = args.slice(1).join(' ').trim();
+    // Ukloni komandu i korisnicki tag iz argumenata, pa ostatak tretiraj kao naziv uloge.
+    // Podrzava: .giverole @korisnik naziv uloge, ID uloge ili tag uloge.
+    const roleNameOrId = args.slice(1)
+      .filter(part => !/^<@!?\d+>$/.test(part))
+      .join(' ')
+      .trim();
     const roleMention = message.mentions.roles.first() ||
       message.guild.roles.cache.get(roleNameOrId) ||
-      message.guild.roles.cache.find(role => role.name.toLowerCase() === roleNameOrId.toLowerCase());
+      message.guild.roles.cache.find(role => role.name.trim().toLowerCase() === roleNameOrId.toLowerCase());
 
     // 2. Pogrešna upotreba (Ukucano samo .giverole)
     if (!target || !roleMention) {
@@ -1423,10 +1428,15 @@ client.on(Events.MessageCreate, async message => {
     }
 
     const target = message.mentions.members.first();
-    const roleNameOrId = args.slice(1).join(' ').trim();
+    // Ukloni komandu i korisnicki tag iz argumenata, pa ostatak tretiraj kao naziv uloge.
+    // Podrzava: .giverole @korisnik naziv uloge, ID uloge ili tag uloge.
+    const roleNameOrId = args.slice(1)
+      .filter(part => !/^<@!?\d+>$/.test(part))
+      .join(' ')
+      .trim();
     const roleMention = message.mentions.roles.first() ||
       message.guild.roles.cache.get(roleNameOrId) ||
-      message.guild.roles.cache.find(role => role.name.toLowerCase() === roleNameOrId.toLowerCase());
+      message.guild.roles.cache.find(role => role.name.trim().toLowerCase() === roleNameOrId.toLowerCase());
 
     if (!target || !roleMention) {
       const usageEmbed = new EmbedBuilder()
@@ -1584,13 +1594,13 @@ if (command === 'mc' || command === 'membercount') {
 
     try {
       targetUser = userId
-        ? await client.users.fetch(userId, { force: true })
+              ? await client.users.fetch(userId, { force: true })
         : message.author;
     } catch {
       const errorEmbed = new EmbedBuilder()
         .setColor('#00BFFF')
         .setTitle('<:985760memberserver:1558975144016216094> Haos Client — Greška')
-              .setDescription('- Ne mogu pronaći navedenog korisnika.');
+        .setDescription('- Ne mogu pronaći navedenog korisnika.');
 
       return message.reply({ embeds: [errorEmbed] });
     }
