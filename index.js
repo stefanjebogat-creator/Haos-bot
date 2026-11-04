@@ -1340,17 +1340,20 @@ client.on(Events.MessageCreate, async message => {
     }
 
     const target = message.mentions.members.first();
-    // Ukloni komandu i korisnicki tag iz argumenata, pa ostatak tretiraj kao naziv uloge.
-    // Podrzava: .giverole @korisnik naziv uloge, ID uloge ili tag uloge.
-    const roleNameOrId = args.slice(1)
-      .filter(part => !/^<@!?\d+>$/.test(part) && !/^<@&\d+>$/.test(part))
-      .join(' ')
-      .trim();
-    // Poredi naziv uloge bez obzira na velika/mala slova i razmake.
+    // Čita tekst direktno iz poruke nakon korisničkog taga.
+    // Tako pouzdano podržava nazive uloga sa više reči.
+    const commandText = message.content.slice(PREFIX.length).trim();
+    const textAfterCommand = commandText.replace(/^\S+\s+/, '');
+    const userMentionMatch = textAfterCommand.match(/^<@!?\d+>\s*/);
+    const roleNameOrId = userMentionMatch
+      ? textAfterCommand.slice(userMentionMatch[0].length).trim()
+      : '';
+
+    // Zanemaruje velika/mala slova, razmake, donje crte, crtice i backslash u nazivu.
     const normalizeRoleName = value => String(value || '')
       .normalize('NFKC')
       .toLocaleLowerCase('sr')
-      .replace(/[\s_-]+/g, '');
+      .replace(/[\\\s_-]+/g, '');
     const normalizedRoleQuery = normalizeRoleName(roleNameOrId);
     const roleMention = message.mentions.roles.first() ||
       message.guild.roles.cache.get(roleNameOrId) ||
@@ -1434,17 +1437,20 @@ client.on(Events.MessageCreate, async message => {
     }
 
     const target = message.mentions.members.first();
-    // Ukloni komandu i korisnicki tag iz argumenata, pa ostatak tretiraj kao naziv uloge.
-    // Podrzava: .giverole @korisnik naziv uloge, ID uloge ili tag uloge.
-    const roleNameOrId = args.slice(1)
-      .filter(part => !/^<@!?\d+>$/.test(part) && !/^<@&\d+>$/.test(part))
-      .join(' ')
-      .trim();
-    // Poredi naziv uloge bez obzira na velika/mala slova i razmake.
+    // Čita tekst direktno iz poruke nakon korisničkog taga.
+    // Tako pouzdano podržava nazive uloga sa više reči.
+    const commandText = message.content.slice(PREFIX.length).trim();
+    const textAfterCommand = commandText.replace(/^\S+\s+/, '');
+    const userMentionMatch = textAfterCommand.match(/^<@!?\d+>\s*/);
+    const roleNameOrId = userMentionMatch
+      ? textAfterCommand.slice(userMentionMatch[0].length).trim()
+      : '';
+
+    // Zanemaruje velika/mala slova, razmake, donje crte, crtice i backslash u nazivu.
     const normalizeRoleName = value => String(value || '')
       .normalize('NFKC')
       .toLocaleLowerCase('sr')
-      .replace(/[\s_-]+/g, '');
+      .replace(/[\\\s_-]+/g, '');
     const normalizedRoleQuery = normalizeRoleName(roleNameOrId);
     const roleMention = message.mentions.roles.first() ||
       message.guild.roles.cache.get(roleNameOrId) ||
@@ -1655,7 +1661,7 @@ if (command === 'mc' || command === 'membercount') {
     }
 
     const bannerURL = targetUser.bannerURL({
-      size: 4096,
+            size: 4096,
       extension: 'png'
     });
 
