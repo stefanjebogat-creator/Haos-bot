@@ -1340,7 +1340,10 @@ client.on(Events.MessageCreate, async message => {
     }
 
     const target = message.mentions.members.first();
-    const roleMention = message.mentions.roles.first() || message.guild.roles.cache.get(args[1]);
+    const roleNameOrId = args.join(' ').trim();
+    const roleMention = message.mentions.roles.first() ||
+      message.guild.roles.cache.get(roleNameOrId) ||
+      message.guild.roles.cache.find(role => role.name.toLowerCase() === roleNameOrId.toLowerCase());
 
     // 2. Pogrešna upotreba (Ukucano samo .giverole)
     if (!target || !roleMention) {
@@ -1349,8 +1352,8 @@ client.on(Events.MessageCreate, async message => {
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — GiveRole')
         .setDescription(
           '- Pogrešno uneta komanda!\n' +
-          '- Upotreba: `.giverole` `[@Korisnik]` `[@Uloga / ID_uloge]`\n' +
-          '- Primer: `.giverole @Korisnik @VIP`'
+          '- Upotreba: `.giverole @Korisnik naziv_uloge` ili ID uloge\n' +
+          '- Primer: `.giverole @Korisnik VIP`'
         );
       return message.reply({ embeds: [usageEmbed] });
     }
@@ -1420,7 +1423,10 @@ client.on(Events.MessageCreate, async message => {
     }
 
     const target = message.mentions.members.first();
-    const roleMention = message.mentions.roles.first() || message.guild.roles.cache.get(args[1]);
+    const roleNameOrId = args.join(' ').trim();
+    const roleMention = message.mentions.roles.first() ||
+      message.guild.roles.cache.get(roleNameOrId) ||
+      message.guild.roles.cache.find(role => role.name.toLowerCase() === roleNameOrId.toLowerCase());
 
     if (!target || !roleMention) {
       const usageEmbed = new EmbedBuilder()
@@ -1428,8 +1434,8 @@ client.on(Events.MessageCreate, async message => {
         .setTitle('<:276022clydebot:1558907359613419531> Haos Client — RemoveRole')
         .setDescription(
           '- Pogrešno uneta komanda!\n' +
-          '- Upotreba: `.removerole` `[@Korisnik]` `[@Uloga / ID_uloge]`\n' +
-          '- Primer: `.removerole @Korisnik @VIP`'
+          '- Upotreba: `.removerole @Korisnik naziv_uloge` ili ID uloge\n' +
+          '- Primer: `.removerole @Korisnik VIP`'
         );
       return message.reply({ embeds: [usageEmbed] });
     }
@@ -1641,10 +1647,10 @@ if (command === 'mc' || command === 'membercount') {
     }
 
     const embed = new EmbedBuilder()
-      .setColor('#00BFFF')
+          .setColor('#00BFFF')
       .setTitle('<:61048photosfolder:1558977971920838656> Haos Client — Banner')
       .setDescription(
-                `- Baner korisnika: ${targetUser}\n` +
+        `- Baner korisnika: ${targetUser}\n` +
         `- [Direktan link do slike](${bannerURL})`
       )
       .setImage(bannerURL)
