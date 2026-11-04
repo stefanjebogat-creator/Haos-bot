@@ -177,20 +177,13 @@ async function sendLevelUp(guild, userId, newLevel, fallbackChannelId = null) {
   const member = await guild.members.fetch(userId).catch(() => null);
   const user = member?.user || await client.users.fetch(userId).catch(() => null);
   const avatar = user?.displayAvatarURL({ size: 256 });
-  const nextXP = xpForNextLevel(newLevel);
+
+  // Minimal Arcane-inspired Level Up card: one line + member avatar.
   const levelEmbed = new EmbedBuilder()
-    .setColor(COLOR)
-    .setAuthor({ name: 'HAOS • LEVEL UP', iconURL: avatar || undefined })
+    .setColor('#00BFFF')
     .setDescription(
-      `❄️ ${member || `<@${userId}>`} je dostigao/la **LEVEL ${newLevel}**!\n` +
-      `Novi izazovi, novi rekordi. Samo nastavi!`
-    )
-    .addFields(
-      { name: '🏆 Novi nivo', value: `**${newLevel}**`, inline: true },
-      { name: '⚡ Sledeći cilj', value: `**${nextXP.toLocaleString('sr-RS')} XP**`, inline: true }
-    )
-    .setFooter({ text: 'HAOS • Leveling System' })
-    .setTimestamp();
+      `<:haos_bump:1550993997210583130> <@${userId}> je dostigao **LEVEL ${newLevel}!**`
+    );
 
   if (avatar) levelEmbed.setThumbnail(avatar);
 
@@ -640,17 +633,21 @@ client.on(Events.MessageCreate, async message => {
     const requiredXP = xpForNextLevel(data.level);
     const rank = getLevelRank(message.guild.id, targetUser.id);
     const avatar = targetUser.displayAvatarURL({ size: 256 });
-    const percent = Math.min(100, Math.floor((data.xp / requiredXP) * 100));
-    const progressSize = 28;
-    const filled = Math.round((percent / 100) * progressSize);
-    const progress = `${'▰'.repeat(filled)}${'▱'.repeat(progressSize - filled)}`;
+
+    const percent = Math.min(1, requiredXP > 0 ? data.xp / requiredXP : 0);
+    const barSize = 36;
+    const filled = Math.round(percent * barSize);
+    const progress = `${'▰'.repeat(filled)}${'▱'.repeat(barSize - filled)}`;
 
     const profileEmbed = new EmbedBuilder()
-      .setColor(COLOR)
-      .setAuthor({ name: targetUser.username, iconURL: avatar })
+      .setColor('#00BFFF')
+      .setAuthor({
+        name: targetUser.username,
+        iconURL: avatar
+      })
       .setThumbnail(avatar)
       .setDescription(
-        `**Level:** ${data.level}   **XP:** ${data.xp.toLocaleString('sr-RS')} / ${requiredXP >= 1000 ? (requiredXP / 1000).toFixed(1) + 'K' : requiredXP.toLocaleString('sr-RS')}   **Rank:** ${rank > 0 ? rank : '—'}\n\n` +
+        `**Level:** ${data.level} **XP:** ${data.xp.toLocaleString('sr-RS')} / ${requiredXP.toLocaleString('sr-RS')} **Rank:** ${rank > 0 ? rank : '—'}\n\n` +
         `\`${progress}\``
       );
 
@@ -1417,9 +1414,9 @@ if (command === 'mc' || command === 'membercount') {
     if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
       return message.reply('❌ Nemaš dozvolu za izdavanje opomena.');
     }
-        const target = message.mentions.members.first();
 
-    if (!target) {
+    const target = message.mentions.members.first();
+        if (!target) {
       return message.reply('❌ Upotreba: `.opomena @član razlog`');
     }
 
