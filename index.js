@@ -1163,12 +1163,41 @@ client.on(Events.MessageCreate, async message => {
     return message.reply({ embeds: [embed('HAOS • POZIVNICE', `Korisniku ${target} dodato je **${amount}** bonus pozivnica.`)] });
   }
 
-  if (command === 'invitereset') {
+  if (['addinvites', 'addinvite'].includes(command)) {
+    if (!message.member.permissions.has(PermissionFlagsBits.Administrator)) {
+      return message.reply({
+        embeds: [embed('HAOS • POZIVNICE', 'Samo administratori mogu da dodaju pozivnice.')]
+      });
+    }
+
+    const target = message.mentions.users.first();
+    const amount = Number(args[1]);
+
+    if (!target || !Number.isInteger(amount) || amount < 1 || amount > 10000) {
+      return message.reply({
+        embeds: [embed('HAOS • POZIVNICE', 'Korišćenje: `.addinvites @korisnik 5`')]
+      });
+    }
+
+    const stats = getInviteUser(message.guild.id, target.id);
+    stats.total += amount;
+    stats.bonus += amount;
+    saveInviteData();
+
+    return message.reply({
+      embeds: [embed(
+        'HAOS • POZIVNICE',
+        `Korisniku ${target} dodato je **${amount}** bonus ${inviteWord(amount)}.`
+      )]
+    });
+  }
+
+  if (['invitereset', 'resetinvites', 'resetinvite'].includes(command)) {
     if (!message.member.permissions.has(PermissionFlagsBits.Administrator)) {
       return message.reply({ embeds: [embed('HAOS • POZIVNICE', 'Samo administratori mogu da resetuju statistiku pozivnica.')] });
     }
     const target = message.mentions.users.first();
-    if (!target) return message.reply({ embeds: [embed('HAOS • POZIVNICE', 'Korišćenje: `.invitereset @korisnik`')] });
+    if (!target) return message.reply({ embeds: [embed('HAOS • POZIVNICE', 'Korišćenje: `.resetinvites @korisnik`')] });
     delete getGuildInviteData(message.guild.id).users[target.id];
     for (const [joinedId, join] of Object.entries(getGuildInviteData(message.guild.id).joins)) {
       if (join.inviterId === target.id) delete getGuildInviteData(message.guild.id).joins[joinedId];
@@ -1616,7 +1645,7 @@ if (command === 'mc' || command === 'membercount') {
 
     // Provera da li je broj validan i u rasponu od 1 do 100
     if (isNaN(amount) || amount < 1 || amount > 100) {
-      const usageEmbed = new EmbedBuilder()
+            const usageEmbed = new EmbedBuilder()
         .setColor('#00BFFF')
         .setTitle('<:78160deleteguild:1559152462680555660> Haos Client — Purge')
         .setDescription(
@@ -1631,7 +1660,8 @@ if (command === 'mc' || command === 'membercount') {
     try {
       // Briše komandu koju je korisnik ukucao
       await message.delete().catch(() => {});
-            // Briše zadati broj poruka
+
+      // Briše zadati broj poruka
       const deletedMessages = await message.channel.bulkDelete(amount, true);
 
       log(message.guild, 'PURGE • Poruke obrisane',
@@ -3208,13 +3238,13 @@ client.on(Events.GuildMemberAdd, async member => {
 
   let notice;
   if (result.vanity) {
-    notice = `${member.user.tag} se pridružio/la serveru koristeći prilagođenu pozivnicu servera.`;
+    notice = `<@${member.id}> je ušao/la na server koristeći prilagođenu pozivnicu servera.`;
   } else {
     const inviter = await client.users.fetch(result.inviterId).catch(() => null);
     const stats = getInviteUser(member.guild.id, result.inviterId);
     notice =
-      `${member.user.tag} se pridružio/la serveru preko pozivnice korisnika ${inviter?.username || 'nepoznatog korisnika'}, ` +
-      `koji sada ima ${stats.total} ${inviteWord(stats.total)}.`;
+      `<@${member.id}> je ušao/la na server, pozvan/a je od strane <@${result.inviterId}>, ` +
+      `koji/ja sada ima **${stats.total} ${inviteWord(stats.total)}**.`;
   }
 
   channel.send({
