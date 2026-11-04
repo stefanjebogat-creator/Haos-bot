@@ -1625,9 +1625,8 @@ if (command === 'mc' || command === 'membercount') {
 
       // Briše zadati broj poruka
       const deletedMessages = await message.channel.bulkDelete(amount, true);
-
-      log(message.guild, 'PURGE • Poruke obrisane',
-                  `Broj obrisanih poruka: ${deletedMessages.size}\nKanal: ${message.channel}\nModerator: ${message.author.tag}`);
+            log(message.guild, 'PURGE • Poruke obrisane',
+        `Broj obrisanih poruka: ${deletedMessages.size}\nKanal: ${message.channel}\nModerator: ${message.author.tag}`);
 
       const successEmbed = new EmbedBuilder()
         .setColor('#00BFFF')
@@ -3190,7 +3189,7 @@ client.on(Events.InviteDelete, invite => {
   if (cache) cache.delete(invite.code);
 });
 
-// Invite Tracker join log: regular inviter ili vanity invite.
+// Invite Tracker-style join log: plain one-line message, bez embed kartice.
 client.on(Events.GuildMemberAdd, async member => {
   const result = await trackMemberInvite(member);
   if (!result) return;
@@ -3198,22 +3197,21 @@ client.on(Events.GuildMemberAdd, async member => {
   const channel = member.guild.channels.cache.get(process.env.INVITE_LOG_CHANNEL_ID || '');
   if (!channel?.isTextBased()) return;
 
-  let description;
+  let notice;
   if (result.vanity) {
-    description = `**${member.user.tag}** joined using a vanity invite.`;
+    notice = `${member.user.tag} joined using a vanity invite.`;
   } else {
     const inviter = await client.users.fetch(result.inviterId).catch(() => null);
     const stats = getInviteUser(member.guild.id, result.inviterId);
-    description =
-      `${member} je ušao/la na server invite-ovan/a je od strane **${inviter?.username || 'Nepoznat korisnik'}** ` +
-      `koji/ja sada ima **${stats.total}** invite-ova.`;
+    notice =
+      `${member.user.tag} joined the server invited by ${inviter?.username || 'Unknown user'}, ` +
+      `who now has ${stats.total} invites.`;
   }
 
-  const notice = new EmbedBuilder()
-    .setColor(COLOR)
-    .setDescription(description)
-    .setThumbnail(member.user.displayAvatarURL({ size: 128 }));
-  channel.send({ embeds: [notice], allowedMentions: { users: [member.id] } }).catch(() => {});
+  channel.send({
+    content: notice,
+    allowedMentions: { parse: [] }
+  }).catch(error => console.error('Greška pri slanju invite obaveštenja:', error));
 });
 
 // Evidentira odlazak člana i ažurira broj aktivnih pozvanih članova.
