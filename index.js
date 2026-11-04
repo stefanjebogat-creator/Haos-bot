@@ -178,7 +178,8 @@ async function trackMemberInvite(member) {
     inviterId,
     code: usedInvite.code,
     joinedAt: Date.now(),
-    fake: isFake
+    fake: isFake,
+    left: false
   };
   saveInviteData();
   return { inviterId, code: usedInvite.code, fake: isFake };
@@ -1148,6 +1149,40 @@ client.on(Events.MessageCreate, async message => {
     return message.reply({ embeds: [inviteEmbed] });
   }
 
+  // .invited [@korisnik] — prikazuje članove koje je korisnik pozvao.
+  if (command === 'invited') {
+    const target = message.mentions.users.first() || message.author;
+    const guildData = getGuildInviteData(message.guild.id);
+    const invitedMembers = Object.entries(guildData.joins)
+      .filter(([, record]) => record?.inviterId === target.id)
+      .sort((a, b) => (b[1].joinedAt || 0) - (a[1].joinedAt || 0));
+
+    if (!invitedMembers.length) {
+      return message.reply({
+        embeds: [embed('HAOS • INVITED MEMBERS', `Nema zabeleženih članova koje je ${target} pozvao/la.`)]
+      });
+    }
+
+    const shown = invitedMembers.slice(0, 20);
+    const lines = await Promise.all(shown.map(async ([memberId, record], index) => {
+      const member = await message.guild.members.fetch(memberId).catch(() => null);
+      const username = member?.user?.username || `Korisnik ${memberId}`;
+      const status = record.left ? '🔴 Napustio server' : '🟢 Još je na serveru';
+      const date = record.joinedAt
+        ? new Date(record.joinedAt).toLocaleDateString('sr-RS', { timeZone: 'Europe/Belgrade' })
+        : 'Nepoznat datum';
+      return `**${index + 1}.** <@${memberId}> (${username}) — ${status} • ${date}`;
+    }));
+
+    const extra = invitedMembers.length > shown.length
+      ? `\n\nPrikazano je ${shown.length} od ukupno ${invitedMembers.length} pozvanih članova.`
+      : `\n\nUkupno zabeleženo: **${invitedMembers.length}**`;
+
+    return message.reply({
+      embeds: [embed(`HAOS • KO JE POZVAO ${target.username.toUpperCase()}`, lines.join('\n') + extra)]
+    });
+  }
+
   if (['invitetop', 'inviteleaderboard', 'topinvites'].includes(command)) {
     const leaderboard = await buildInviteLeaderboard(message.guild, 0);
     return message.reply({
@@ -1339,28 +1374,21 @@ client.on(Events.MessageCreate, async message => {
       return message.reply({ embeds: [noPermEmbed] });
     }
 
-    // Uzimamo ID korisnika direktno iz sirovog teksta poruke (pouzdanije od cache mention-a).
-    const rawCommandText = message.content.slice(PREFIX.length).trim();
-    const targetMatch = rawCommandText.match(/^\S+\s+<@!?(\d+)>/);
-    const target = targetMatch
-      ? (message.guild.members.cache.get(targetMatch[1]) || await message.guild.members.fetch(targetMatch[1]).catch(() => null))
-      : message.mentions.members.first();
-
-    // Sve posle korisnickog taga je naziv/ID uloge; podrzava nazive sa razmacima.
-    const roleNameOrId = targetMatch
-      ? rawCommandText.slice(targetMatch[0].length).trim()
-      : args.slice(1).filter(part => !/^<@!?\d+>$/.test(part)).join(' ').trim();
-
-    // Uklanja razmake, kosu crtu, crtice, emoji i ostale znakove iz naziva uloge.
-    // Npr. "\ pic perms", "pic perms" i "picperms" se poklapaju.
+    const target = message.mentions.members.first();
+    // Ukloni komandu i korisnicki tag iz argumenata, pa ostatak tretiraj kao naziv uloge.
+    // Podrzava: .giverole @korisnik naziv uloge, ID uloge ili tag uloge.
+    const roleNameOrId = args.slice(1)
+      .filter(part => !/^<@!?\d+>$/.test(part) && !/^<@&\d+>$/.test(part))
+      .join(' ')
+      .trim();
+    // Poredi naziv uloge bez obzira na velika/mala slova i razmake.
     const normalizeRoleName = value => String(value || '')
       .normalize('NFKC')
       .toLocaleLowerCase('sr')
-      .replace(/[^\p{L}\p{N}]/gu, '');
+      .replace(/[\s_-]+/g, '');
     const normalizedRoleQuery = normalizeRoleName(roleNameOrId);
-    const roleId = roleNameOrId.match(/^<@&(\d+)>$/)?.[1] || roleNameOrId;
     const roleMention = message.mentions.roles.first() ||
-      message.guild.roles.cache.get(roleId) ||
+      message.guild.roles.cache.get(roleNameOrId) ||
       message.guild.roles.cache.find(role => normalizeRoleName(role.name) === normalizedRoleQuery);
 
     // 2. Pogrešna upotreba (Ukucano samo .giverole)
@@ -1440,28 +1468,21 @@ client.on(Events.MessageCreate, async message => {
       return message.reply({ embeds: [noPermEmbed] });
     }
 
-    // Uzimamo ID korisnika direktno iz sirovog teksta poruke (pouzdanije od cache mention-a).
-    const rawCommandText = message.content.slice(PREFIX.length).trim();
-    const targetMatch = rawCommandText.match(/^\S+\s+<@!?(\d+)>/);
-    const target = targetMatch
-      ? (message.guild.members.cache.get(targetMatch[1]) || await message.guild.members.fetch(targetMatch[1]).catch(() => null))
-      : message.mentions.members.first();
-
-    // Sve posle korisnickog taga je naziv/ID uloge; podrzava nazive sa razmacima.
-    const roleNameOrId = targetMatch
-      ? rawCommandText.slice(targetMatch[0].length).trim()
-      : args.slice(1).filter(part => !/^<@!?\d+>$/.test(part)).join(' ').trim();
-
-    // Uklanja razmake, kosu crtu, crtice, emoji i ostale znakove iz naziva uloge.
-    // Npr. "\ pic perms", "pic perms" i "picperms" se poklapaju.
+    const target = message.mentions.members.first();
+    // Ukloni komandu i korisnicki tag iz argumenata, pa ostatak tretiraj kao naziv uloge.
+    // Podrzava: .giverole @korisnik naziv uloge, ID uloge ili tag uloge.
+    const roleNameOrId = args.slice(1)
+      .filter(part => !/^<@!?\d+>$/.test(part) && !/^<@&\d+>$/.test(part))
+      .join(' ')
+      .trim();
+    // Poredi naziv uloge bez obzira na velika/mala slova i razmake.
     const normalizeRoleName = value => String(value || '')
       .normalize('NFKC')
       .toLocaleLowerCase('sr')
-      .replace(/[^\p{L}\p{N}]/gu, '');
+      .replace(/[\s_-]+/g, '');
     const normalizedRoleQuery = normalizeRoleName(roleNameOrId);
-    const roleId = roleNameOrId.match(/^<@&(\d+)>$/)?.[1] || roleNameOrId;
     const roleMention = message.mentions.roles.first() ||
-      message.guild.roles.cache.get(roleId) ||
+      message.guild.roles.cache.get(roleNameOrId) ||
       message.guild.roles.cache.find(role => normalizeRoleName(role.name) === normalizedRoleQuery);
 
     if (!target || !roleMention) {
@@ -1654,8 +1675,7 @@ if (command === 'mc' || command === 'membercount') {
     const member = message.mentions.users.first();
     const userId = member?.id || args[0]?.replace(/[<@!>]/g, '');
     let targetUser;
-
-    try {
+        try {
       targetUser = userId
         ? await client.users.fetch(userId, { force: true })
         : await client.users.fetch(message.author.id, { force: true });
@@ -1664,7 +1684,8 @@ if (command === 'mc' || command === 'membercount') {
         .setColor('#00BFFF')
         .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Ne mogu pronaći navedenog korisnika.');
-            return message.reply({ embeds: [errorEmbed] });
+
+      return message.reply({ embeds: [errorEmbed] });
     }
 
     const bannerURL = targetUser.bannerURL({
@@ -3291,14 +3312,15 @@ client.on(Events.GuildMemberAdd, async member => {
   }).catch(error => console.error('Greška pri slanju invite obaveštenja:', error));
 });
 
-// Evidentira odlazak člana i ažurira broj aktivnih pozvanih članova.
+// Evidentira odlazak člana i čuva istoriju za .invited.
 client.on(Events.GuildMemberRemove, member => {
   const guildData = getGuildInviteData(member.guild.id);
   const join = guildData.joins[member.id];
-  if (!join?.inviterId) return;
+  if (!join?.inviterId || join.left) return;
   const stats = getInviteUser(member.guild.id, join.inviterId);
   if (!join.fake) stats.left += 1;
-  delete guildData.joins[member.id];
+  join.left = true;
+  join.leftAt = Date.now();
   saveInviteData();
 });
 
