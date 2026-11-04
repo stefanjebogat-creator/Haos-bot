@@ -11,7 +11,8 @@ const {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  ChannelType
+  ChannelType,
+  StringSelectMenuBuilder
 } = require('discord.js');
 
 const PREFIX = '.';
@@ -352,6 +353,77 @@ function haosLevelEmbed(title, description) {
   return new EmbedBuilder().setColor(COLOR).setTitle(title).setDescription(description).setTimestamp();
 }
 
+// Arcane-inspired compact leaderboard card. Uses native Discord embeds and a select menu.
+async function buildHaosLeaderboard(guild, metric = 'xp') {
+  const guildData = getGuildLevelData(guild.id);
+  const entries = Object.entries(guildData.users || {});
+
+  const scoreOf = ([userId, data]) => metric === 'voice'
+    ? getVoiceTime(guild.id, userId)
+    : Number(data.totalXp || 0);
+
+  const sorted = entries.sort((a, b) => scoreOf(b) - scoreOf(a)).slice(0, 10);
+  const filtered = metric === 'voice' ? sorted.filter(entry => scoreOf(entry) > 0) : sorted;
+
+  const title = metric === 'voice' ? 'HAOS™ • VOICE TIME' : 'HAOS™ • OVERALL XP';
+  if (!filtered.length) {
+    return new EmbedBuilder()
+      .setColor(COLOR)
+      .setTitle(title)
+      .setDescription(metric === 'voice'
+        ? 'Još nema zabeleženog voice vremena.'
+        : 'Još nema XP podataka. Pošaljite poruke da biste počeli!')
+      .setFooter({ text: 'HAOS • LEADERBOARD' });
+  }
+
+  const maxScore = Math.max(1, scoreOf(filtered[0]));
+  const medals = ['🥇', '🥈', '🥉'];
+  const rows = [];
+
+  for (let index = 0; index < filtered.length; index++) {
+    const [userId, data] = filtered[index];
+    const user = await client.users.fetch(userId).catch(() => null);
+    const username = (user?.username || `User ${userId}`).slice(0, 24);
+    const score = scoreOf(filtered[index]);
+    const barSize = 24;
+    const filled = Math.max(score > 0 ? 1 : 0, Math.round((score / maxScore) * barSize));
+    const bar = `${'▰'.repeat(filled)}${'▱'.repeat(barSize - filled)}`;
+
+    if (metric === 'voice') {
+      rows.push(
+        `${medals[index] || `**#${index + 1}**`} **${username}**\n` +
+        `\`${bar}\`  **${formatVoiceTime(score)}**`
+      );
+    } else {
+      rows.push(
+        `${medals[index] || `**#${index + 1}**`} **${username}**  •  LVL **${data.level || 0}**\n` +
+        `\`${bar}\`  **${Number(data.totalXp || 0).toLocaleString('sr-RS')} XP**`
+      );
+    }
+  }
+
+  return new EmbedBuilder()
+    .setColor(COLOR)
+    .setTitle('HAOS™')
+    .setDescription(
+      `**${metric === 'voice' ? 'Voice Time' : 'Overall XP'}**\n\n` +
+      rows.join('\n\n')
+    )
+    .setFooter({ text: 'HAOS • LEADERBOARD' });
+}
+
+function haosLeaderboardMenu(metric, ownerId) {
+  return new ActionRowBuilder().addComponents(
+    new StringSelectMenuBuilder()
+      .setCustomId(`haos_lb_${ownerId}`)
+      .setPlaceholder(metric === 'voice' ? 'Voice Time' : 'Overall XP')
+      .addOptions(
+        { label: 'Overall XP', value: 'xp', description: 'Rang lista po ukupnom XP-u', default: metric === 'xp' },
+        { label: 'Voice Time', value: 'voice', description: 'Rang lista po voice vremenu', default: metric === 'voice' }
+      )
+  );
+}
+
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -567,80 +639,63 @@ client.on(Events.MessageCreate, async message => {
     const data = getLevelUser(message.guild.id, targetUser.id);
     const requiredXP = xpForNextLevel(data.level);
     const rank = getLevelRank(message.guild.id, targetUser.id);
-    const voiceTime = getVoiceTime(message.guild.id, targetUser.id);
     const avatar = targetUser.displayAvatarURL({ size: 256 });
     const percent = Math.min(100, Math.floor((data.xp / requiredXP) * 100));
+    const progressSize = 28;
+    const filled = Math.round((percent / 100) * progressSize);
+    const progress = `${'▰'.repeat(filled)}${'▱'.repeat(progressSize - filled)}`;
 
     const profileEmbed = new EmbedBuilder()
       .setColor(COLOR)
       .setAuthor({ name: targetUser.username, iconURL: avatar })
+      .setThumbnail(avatar)
       .setDescription(
-        `**Level:** ${data.level}   **XP:** ${data.xp.toLocaleString('sr-RS')} / ${requiredXP.toLocaleString('sr-RS')}   **Rank:** #${rank || '—'}\n` +
-        `${makeLevelProgressBar(data.xp, requiredXP, 24)}`
-      )
-      .addFields(
-        { name: 'Overall XP', value: `**${data.totalXp.toLocaleString('sr-RS')}**`, inline: true },
-        { name: 'Voice Time', value: `**${formatVoiceTime(voiceTime)}**`, inline: true }
-      )
-      .setThumbnail(avatar);
+        `**Level:** ${data.level}   **XP:** ${data.xp.toLocaleString('sr-RS')} / ${requiredXP >= 1000 ? (requiredXP / 1000).toFixed(1) + 'K' : requiredXP.toLocaleString('sr-RS')}   **Rank:** ${rank > 0 ? rank : '—'}\n\n` +
+        `\`${progress}\``
+      );
 
     return message.reply({ embeds: [profileEmbed] });
   }
 
   if (['leveltop', 'xptop', 'levelleaderboard'].includes(command)) {
-    const users = Object.entries(getGuildLevelData(message.guild.id).users)
-      .sort((a, b) => (b[1].totalXp || 0) - (a[1].totalXp || 0))
-      .slice(0, 10);
-
-    if (!users.length) {
-      return message.reply({ embeds: [haosLevelEmbed('HAOS • LEVEL TOP', 'Još nema podataka. Pišite u chatu da biste skupljali XP.')] });
-    }
-
-    const medals = ['🥇', '🥈', '🥉'];
-    const rows = [];
-    for (let i = 0; i < users.length; i++) {
-      const [id, data] = users[i];
-      const user = await client.users.fetch(id).catch(() => null);
-      rows.push(`${medals[i] || `**#${i + 1}**`} **${user?.username || `Korisnik ${id}`}**  •  LVL ${data.level}  •  ${(data.totalXp || 0).toLocaleString('sr-RS')} XP`);
-    }
-
-    return message.reply({ embeds: [haosLevelEmbed('HAOS • LEVEL TOP 10', rows.join('\n'))] });
+    const leaderboard = await buildHaosLeaderboard(message.guild, 'xp');
+    return message.reply({
+      embeds: [leaderboard],
+      components: [haosLeaderboardMenu('xp', message.author.id)]
+    });
   }
 
   if (['voicetime', 'voice', 'vc'].includes(command)) {
     const targetUser = message.mentions.users.first() || message.author;
     const voiceTime = getVoiceTime(message.guild.id, targetUser.id);
     const voiceRank = getVoiceRank(message.guild.id, targetUser.id);
+    const allVoiceTimes = Object.keys(getGuildLevelData(message.guild.id).users)
+      .map(id => getVoiceTime(message.guild.id, id));
+    const maxVoiceTime = Math.max(1, ...allVoiceTimes);
+    const percent = Math.min(100, Math.floor((voiceTime / maxVoiceTime) * 100));
+    const barSize = 28;
+    const filled = Math.round((percent / 100) * barSize);
+    const progress = `${'▰'.repeat(filled)}${'▱'.repeat(barSize - filled)}`;
+    const avatar = targetUser.displayAvatarURL({ size: 256 });
 
     const voiceEmbed = new EmbedBuilder()
       .setColor(COLOR)
-      .setAuthor({ name: targetUser.username, iconURL: targetUser.displayAvatarURL({ size: 256 }) })
+      .setAuthor({ name: targetUser.username, iconURL: avatar })
+      .setThumbnail(avatar)
       .setDescription(
-        `**Voice Time:** ${formatVoiceTime(voiceTime)}   **Rank:** #${voiceRank || '—'}`
+        `**Voice Time:** ${formatVoiceTime(voiceTime)}   **Rank:** #${voiceRank || '—'}\n\n` +
+        `\`${progress}\``
       );
 
     return message.reply({ embeds: [voiceEmbed] });
   }
 
   if (['voicetop', 'voiceleaderboard', 'vctop'].includes(command)) {
-    const users = Object.keys(getGuildLevelData(message.guild.id).users)
-      .sort((a, b) => getVoiceTime(message.guild.id, b) - getVoiceTime(message.guild.id, a))
-      .filter(id => getVoiceTime(message.guild.id, id) > 0)
-      .slice(0, 10);
-
-    if (!users.length) {
-      return message.reply({ embeds: [haosLevelEmbed('HAOS • VOICE TOP', 'Još nema zabeleženog voice vremena.')] });
-    }
-
-    const medals = ['🥇', '🥈', '🥉'];
-    const rows = [];
-    for (let i = 0; i < users.length; i++) {
-      const id = users[i];
-      const user = await client.users.fetch(id).catch(() => null);
-      rows.push(`${medals[i] || `**#${i + 1}**`} **${user?.username || `Korisnik ${id}`}**  •  ${formatVoiceTime(getVoiceTime(message.guild.id, id))}`);
-    }
-
-    return message.reply({ embeds: [haosLevelEmbed('HAOS • VOICE TOP 10', rows.join('\n'))] });
+    const leaderboard = await buildHaosLeaderboard(message.guild, 'voice');
+    return message.reply({
+      embeds: [leaderboard],
+      components: [haosLeaderboardMenu('voice', message.author.id)]
+    });
   }
 
   if (command === 'daily') return claimDailyReward(message);
@@ -1362,8 +1417,7 @@ if (command === 'mc' || command === 'membercount') {
     if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
       return message.reply('❌ Nemaš dozvolu za izdavanje opomena.');
     }
-
-    const target = message.mentions.members.first();
+        const target = message.mentions.members.first();
 
     if (!target) {
       return message.reply('❌ Upotreba: `.opomena @član razlog`');
@@ -1381,7 +1435,8 @@ if (command === 'mc' || command === 'membercount') {
 
     // Promeni 10 u 15 ako želiš timeout od 15 minuta
     const timeoutMinutes = 10;
-        try {
+
+    try {
       await target.timeout(
         timeoutMinutes * 60 * 1000,
         `Opomena od ${message.author.tag}: ${reason}`
@@ -2757,6 +2812,28 @@ process.on('SIGINT', () => {
 process.on('SIGTERM', () => {
   saveActiveVoiceSessions();
   process.exit(0);
+});
+
+
+// Leaderboard dropdown: switch between Overall XP and Voice Time.
+client.on(Events.InteractionCreate, async interaction => {
+  if (!interaction.isStringSelectMenu()) return;
+  if (!interaction.customId.startsWith('haos_lb_')) return;
+
+  const ownerId = interaction.customId.slice('haos_lb_'.length);
+  if (interaction.user.id !== ownerId) {
+    return interaction.reply({
+      content: 'Samo osoba koja je otvorila ovu rang-listu može menjati prikaz.',
+      ephemeral: true
+    });
+  }
+
+  const metric = interaction.values[0] === 'voice' ? 'voice' : 'xp';
+  const leaderboard = await buildHaosLeaderboard(interaction.guild, metric);
+  await interaction.update({
+    embeds: [leaderboard],
+    components: [haosLeaderboardMenu(metric, ownerId)]
+  });
 });
 
 client.login(process.env.DISCORD_TOKEN);
