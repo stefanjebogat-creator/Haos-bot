@@ -19,78 +19,6 @@ const COLOR = '#00BFFF';
 const giveaways = new Map();
 const COMMAND_LOG_CHANNEL_ID = '1559168762501005452';
 
-// 1. RANK KOMANDA (.rank / .level)
-  if (['rank', 'level', 'lvl'].includes(command)) {
-    try {
-      const target = message.mentions.users.first() || message.author;
-      const guildId = message.guild.id;
-      const userStats = getLevelUser(guildId, target.id);
-
-      const neededXp = xpForNextLevel(userStats.level);
-      const progressBar = makeLevelProgressBar(userStats.xp, neededXp, 10);
-
-      const rankEmbed = new EmbedBuilder()
-        .setColor(0x00BFFF) // Svetlo plava zimska boja
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Rank')
-        .setThumbnail(message.guild.iconURL({ dynamic: true })) // Slika servera desno kao na membercount-u
-        .setDescription(
-          `- **Korisnik:** ${target}\n` +
-          `- **Nivo:** \`${userStats.level}\`\n` +
-          `- **XP:** \`${userStats.xp} / ${neededXp}\`\n` +
-          `- **Progres:** ${progressBar}`
-        );
-
-      return message.reply({ embeds: [rankEmbed] });
-    } catch (error) {
-      console.error('Greška pri izvršavanju rank komande:', error);
-    }
-  }
-
-  // 2. LEVEL TOP KOMANDA (.leveltop / .top)
-  if (['leveltop', 'top', 'leaderboard'].includes(command)) {
-    try {
-      const guildId = message.guild.id;
-      const guildData = getGuildLevelData(guildId);
-      const usersObj = guildData.users || {};
-
-      const sortedUsers = Object.entries(usersObj)
-        .map(([userId, data]) => ({
-          userId,
-          level: data.level || 0,
-          xp: data.xp || 0,
-          totalXp: data.totalXp || (data.level * 100 + (data.xp || 0))
-        }))
-        .sort((a, b) => b.totalXp - a.totalXp)
-        .slice(0, 10); // Top 10 članova
-
-      if (sortedUsers.length === 0) {
-        const emptyEmbed = new EmbedBuilder()
-          .setColor(0x00BFFF)
-          .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Level Top')
-          .setDescription('- Još uvek nema zabeleženih podataka o levelima.');
-        return message.reply({ embeds: [emptyEmbed] });
-      }
-
-      let descriptionList = '';
-      for (let i = 0; i < sortedUsers.length; i++) {
-        const u = sortedUsers[i];
-        const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? 'bronze' : `\`${i + 1}.\``;
-        // Umesto medalje za treće može emoji ili običan broj
-        const rankNum = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `\`${i + 1}.\``;
-        descriptionList += `- ${rankNum} <@${u.userId}> — Nivo: \`${u.level}\` (XP: \`${u.xp}\`)\n`;
-      }
-
-      const topEmbed = new EmbedBuilder()
-        .setColor(0x00BFFF)
-        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Level Top')
-        .setThumbnail(message.guild.iconURL({ dynamic: true }))
-        .setDescription(descriptionList);
-
-      return message.reply({ embeds: [topEmbed] });
-    } catch (error) {
-      console.error('Greška pri izvršavanju leveltop komande:', error);
-    }
-  }
 
 // ==========================================
 // HAOS VOICE TIME SISTEM
@@ -911,6 +839,77 @@ if (command === 'mc' || command === 'membercount') {
       )
 
     return message.reply({ embeds: [mcEmbed] });
+  }
+
+// RANK KOMANDA (.rank / .level)
+  if (['rank', 'level', 'lvl'].includes(command)) {
+    try {
+      const target = message.mentions.users.first() || message.author;
+      const guildId = message.guild.id;
+      const userStats = getLevelUser(guildId, target.id);
+
+      const neededXp = xpForNextLevel(userStats.level);
+      const progressBar = makeLevelProgressBar(userStats.xp, neededXp, 10);
+
+      const rankEmbed = new EmbedBuilder()
+        .setColor(0x00BFFF)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Rank')
+        .setThumbnail(message.guild.iconURL({ dynamic: true }))
+        .setDescription(
+          `- **Korisnik:** ${target}\n` +
+          `- **Nivo:** \`${userStats.level}\`\n` +
+          `- **XP:** \`${userStats.xp} / ${neededXp}\`\n` +
+          `- **Progres:** ${progressBar}`
+        );
+
+      return message.reply({ embeds: [rankEmbed] });
+    } catch (error) {
+      console.error('Greška pri izvršavanju rank komande:', error);
+    }
+  }
+
+  // LEVEL TOP KOMANDA (.leveltop / .top)
+  if (['leveltop', 'top', 'leaderboard'].includes(command)) {
+    try {
+      const guildId = message.guild.id;
+      const guildData = getGuildLevelData(guildId);
+      const usersObj = guildData.users || {};
+
+      const sortedUsers = Object.entries(usersObj)
+        .map(([userId, data]) => ({
+          userId,
+          level: data.level || 0,
+          xp: data.xp || 0,
+          totalXp: data.totalXp || (data.level * 100 + (data.xp || 0))
+        }))
+        .sort((a, b) => b.totalXp - a.totalXp)
+        .slice(0, 10);
+
+      if (sortedUsers.length === 0) {
+        const emptyEmbed = new EmbedBuilder()
+          .setColor(0x00BFFF)
+          .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Level Top')
+          .setDescription('- Još uvek nema zabeleženih podataka o levelima.');
+        return message.reply({ embeds: [emptyEmbed] });
+      }
+
+      let descriptionList = '';
+      for (let i = 0; i < sortedUsers.length; i++) {
+        const u = sortedUsers[i];
+        const rankNum = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `\`${i + 1}.\``;
+        descriptionList += `- ${rankNum} <@${u.userId}> — Nivo: \`${u.level}\` (XP: \`${u.xp}\`)\n`;
+      }
+
+      const topEmbed = new EmbedBuilder()
+        .setColor(0x00BFFF)
+        .setTitle('<:276022clydebot:1558907359613419531> Haos Client — Level Top')
+        .setThumbnail(message.guild.iconURL({ dynamic: true }))
+        .setDescription(descriptionList);
+
+      return message.reply({ embeds: [topEmbed] });
+    } catch (error) {
+      console.error('Greška pri izvršavanju leveltop komande:', error);
+    }
   }
   
 // SERVERINFO (.serverinfo)
