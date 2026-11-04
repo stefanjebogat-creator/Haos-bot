@@ -21,6 +21,162 @@ const giveaways = new Map();
 const COMMAND_LOG_CHANNEL_ID = '1559168762501005452';
 
 // ==========================================
+// HAOS INVITE TRACKER
+// ==========================================
+const INVITES_FILE = './invites.json';
+const inviteCache = new Map();
+const vanityInviteCache = new Map();
+
+function loadInviteData() {
+  try {
+    const data = JSON.parse(fs.readFileSync(INVITES_FILE, 'utf8'));
+    return data && typeof data === 'object' ? data : {};
+  } catch {
+    return {};
+  }
+}
+
+const inviteData = loadInviteData();
+
+// ==========================================
+// HAOS JOIN ANNOUNCEMENT SETTINGS
+// ==========================================
+const JOIN_SETTINGS_FILE = './join-settings.json';
+
+function loadJoinSettings() {
+  try {
+    const data = JSON.parse(fs.readFileSync(JOIN_SETTINGS_FILE, 'utf8'));
+    return data && typeof data === 'object' ? data : {};
+  } catch {
+    return {};
+  }
+}
+
+const joinSettings = loadJoinSettings();
+
+function saveJoinSettings() {
+  try {
+    const tempFile = `${JOIN_SETTINGS_FILE}.tmp`;
+    fs.writeFileSync(tempFile, JSON.stringify(joinSettings, null, 2));
+    fs.renameSync(tempFile, JOIN_SETTINGS_FILE);
+  } catch (error) {
+    console.error('Greška pri čuvanju join podešavanja:', error);
+  }
+}
+
+
+
+function saveInviteData() {
+  try {
+    const tempFile = `${INVITES_FILE}.tmp`;
+    fs.writeFileSync(tempFile, JSON.stringify(inviteData, null, 2));
+    fs.renameSync(tempFile, INVITES_FILE);
+  } catch (error) {
+    console.error('Greška pri čuvanju invite podataka:', error);
+  }
+}
+
+function getGuildInviteData(guildId) {
+  if (!inviteData[guildId]) inviteData[guildId] = { users: {}, joins: {} };
+  if (!inviteData[guildId].users) inviteData[guildId].users = {};
+  if (!inviteData[guildId].joins) inviteData[guildId].joins = {};
+  return inviteData[guildId];
+}
+
+function getInviteUser(guildId, userId) {
+  const guild = getGuildInviteData(guildId);
+  if (!guild.users[userId]) {
+    guild.users[userId] = { total: 0, left: 0, fake: 0, regular: 0, bonus: 0 };
+  }
+  const stats = guild.users[userId];
+  for (const key of ['total', 'left', 'fake', 'regular', 'bonus']) {
+    if (typeof stats[key] !== 'number') stats[key] = 0;
+  }
+  return stats;
+}
+
+async function cacheGuildInvites(guild) {
+  try {
+    const invites = await guild.invites.fetch();
+    inviteCache.set(guild.id, new Map(
+      invites.map(invite => [invite.code, {
+        uses: invite.uses || 0,
+        inviterId: invite.inviter?.id || null
+      }])
+    ));
+    try {
+      const vanity = await guild.fetchVanityData();
+      vanityInviteCache.set(guild.id, vanity?.uses || 0);
+    } catch {
+      vanityInviteCache.set(guild.id, null);
+    }
+  } catch (error) {
+    console.error(`Ne mogu da učitam invite za ${guild.name}. Proveri Manage Server dozvolu.`, error.message);
+    inviteCache.set(guild.id, new Map());
+  }
+}
+
+async function trackMemberInvite(member) {
+  const guild = member.guild;
+  const previous = inviteCache.get(guild.id) || new Map();
+  let usedInvite = null;
+  let vanityUsed = false;
+
+  try {
+    const currentInvites = await guild.invites.fetch();
+    for (const invite of currentInvites.values()) {
+      const old = previous.get(invite.code);
+      if (old && (invite.uses || 0) > old.uses) {
+        usedInvite = invite;
+        break;
+      }
+    }
+
+    inviteCache.set(guild.id, new Map(
+      currentInvites.map(invite => [invite.code, {
+        uses: invite.uses || 0,
+        inviterId: invite.inviter?.id || null
+      }])
+    ));
+
+    try {
+      const vanity = await guild.fetchVanityData();
+      const previousVanityUses = vanityInviteCache.get(guild.id);
+      vanityUsed = previousVanityUses !== null &&
+        previousVanityUses !== undefined &&
+        (vanity?.uses || 0) > previousVanityUses;
+      vanityInviteCache.set(guild.id, vanity?.uses || 0);
+    } catch {
+      // Vanity link may not exist or the bot may not have permission.
+    }
+  } catch (error) {
+    console.error('Greška pri proveri iskorišćenog invite-a:', error.message);
+  }
+
+  if (!usedInvite?.inviter) {
+    return vanityUsed ? { vanity: true, code: null } : null;
+  }
+
+  const inviterId = usedInvite.inviter.id;
+  const stats = getInviteUser(guild.id, inviterId);
+  const isFake = Date.now() - member.user.createdTimestamp < 7 * 24 * 60 * 60 * 1000;
+
+  stats.total += 1;
+  if (isFake) stats.fake += 1;
+  else stats.regular += 1;
+
+  getGuildInviteData(guild.id).joins[member.id] = {
+    inviterId,
+    code: usedInvite.code,
+    joinedAt: Date.now(),
+    fake: isFake
+  };
+  saveInviteData();
+  return { inviterId, code: usedInvite.code, fake: isFake };
+}
+
+
+// ==========================================
 // HAOS ULTIMATE LEVELING + VOICE SYSTEM
 // ==========================================
 const LEVELING_FILE = './leveling.json';
@@ -417,10 +573,66 @@ function haosLeaderboardMenu(metric, ownerId) {
   );
 }
 
+async function buildInviteLeaderboard(guild, page = 0) {
+  const entries = Object.entries(getGuildInviteData(guild.id).users)
+    .map(([userId, raw]) => [userId, getInviteUser(guild.id, userId)])
+    .filter(([, stats]) => stats.total > 0)
+    .sort((a, b) => b[1].total - a[1].total);
+
+  const pageSize = 10;
+  const totalPages = Math.max(1, Math.ceil(entries.length / pageSize));
+  const safePage = Math.max(0, Math.min(page, totalPages - 1));
+  const pageEntries = entries.slice(safePage * pageSize, (safePage + 1) * pageSize);
+  const lines = [];
+
+  for (let index = 0; index < pageEntries.length; index++) {
+    const [userId, stats] = pageEntries[index];
+    const user = await client.users.fetch(userId).catch(() => null);
+    const position = safePage * pageSize + index + 1;
+    lines.push(
+      `**${position}.** <@${userId}> • **${stats.total}** invites. ` +
+      `(${stats.regular} regular, ${stats.left} left, ${stats.fake} fake, ${stats.bonus} bonus)`
+    );
+  }
+
+  return new EmbedBuilder()
+    .setColor(COLOR)
+    .setDescription(
+      `**Invites Leaderboard**\n\n` +
+      (lines.join('\n') || 'Još nema zabeleženih pozivnica.')
+    )
+    .setFooter({ text: `HAOS Invite Tracker • Page ${safePage + 1}/${totalPages} • Today at ${new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` });
+}
+
+function inviteLeaderboardButtons(guildId, page) {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`haos_invites_first_${guildId}_${page}`)
+      .setEmoji('⏮️')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(page <= 0),
+    new ButtonBuilder()
+      .setCustomId(`haos_invites_prev_${guildId}_${page}`)
+      .setEmoji('◀️')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(page <= 0),
+    new ButtonBuilder()
+      .setCustomId(`haos_invites_page_${guildId}_${page}`)
+      .setLabel(String(page + 1))
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(true),
+    new ButtonBuilder()
+      .setCustomId(`haos_invites_next_${guildId}_${page}`)
+      .setEmoji('▶️')
+      .setStyle(ButtonStyle.Primary)
+  );
+}
+
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildInvites,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.GuildVoiceStates,
     GatewayIntentBits.MessageContent
@@ -535,8 +747,11 @@ function updateBotStatus() {
 }
 
 
-client.once(Events.ClientReady, bot => {
+client.once(Events.ClientReady, async bot => {
   console.log(`Bot je online: ${bot.user.tag}`);
+
+  // Učitava trenutno stanje pozivnica za pouzdano praćenje novih članova.
+  for (const guild of bot.guilds.cache.values()) await cacheGuildInvites(guild);
 
   // Rekonstruiše aktivne voice sesije nakon pokretanja (ne računa vreme dok je bot offline).
   for (const guild of bot.guilds.cache.values()) {
@@ -563,6 +778,34 @@ client.on(Events.VoiceStateUpdate, (oldState, newState) => {
   }
   if (oldChannel) refreshVoiceChannel(oldChannel);
   if (newChannel && newChannel.id !== oldChannel?.id) refreshVoiceChannel(newChannel);
+});
+
+// Obaveštenje u posebnom kanalu kada novi član uđe na server.
+client.on(Events.GuildMemberAdd, async member => {
+  const channelId = joinSettings[member.guild.id] || process.env.JOIN_CHANNEL_ID;
+  if (!channelId) return;
+
+  const channel = member.guild.channels.cache.get(channelId);
+  if (!channel?.isTextBased()) return;
+
+  const joinEmbed = new EmbedBuilder()
+    .setColor(COLOR)
+    .setAuthor({
+      name: 'HAOS • NOVI ČLAN',
+      iconURL: member.guild.iconURL({ size: 128 }) || undefined
+    })
+    .setDescription(
+      `👋 Dobrodošao/la ${member} na **${member.guild.name}**!\n` +
+      `Ti si naš **${member.guild.memberCount}. član**.`
+    )
+    .setThumbnail(member.user.displayAvatarURL({ size: 256 }))
+    .setFooter({ text: `ID: ${member.id}` })
+    .setTimestamp();
+
+  await channel.send({
+    embeds: [joinEmbed],
+    allowedMentions: { users: [member.id] }
+  }).catch(error => console.error('Greška pri slanju join obaveštenja:', error));
 });
 
 // WELCOME PORUKA
@@ -834,7 +1077,107 @@ client.on(Events.MessageCreate, async message => {
     logChannel.send({ embeds: [logEmbed] }).catch(console.error);
   }
 
-if (command === 'lb' || command === 'leaderboard') {
+// HAOS JOIN CHANNEL — podešavanje posebnog kanala za dolaske.
+  if (command === 'joinchannel') {
+    if (!message.member.permissions.has(PermissionFlagsBits.Administrator)) {
+      return message.reply({
+        embeds: [embed('HAOS • JOIN CHANNEL', 'Samo administratori mogu podesiti kanal za obaveštenja.')]
+      });
+    }
+
+    const selectedChannel = message.mentions.channels.first();
+    if (args[0]?.toLowerCase() === 'off') {
+      delete joinSettings[message.guild.id];
+      saveJoinSettings();
+      return message.reply({
+        embeds: [embed('HAOS • JOIN CHANNEL', 'Obaveštenja o novim članovima su isključena.')]
+      });
+    }
+
+    if (!selectedChannel || !selectedChannel.isTextBased()) {
+      const currentId = joinSettings[message.guild.id];
+      const currentChannel = currentId ? message.guild.channels.cache.get(currentId) : null;
+      return message.reply({
+        embeds: [embed(
+          'HAOS • JOIN CHANNEL',
+          currentChannel
+            ? `Trenutni kanal za dolaske je ${currentChannel}.\nUpotreba: \`.joinchannel #kanal\` ili \`.joinchannel off\``
+            : 'Kanal još nije podešen.\nUpotreba: `.joinchannel #kanal`'
+        )]
+      });
+    }
+
+    joinSettings[message.guild.id] = selectedChannel.id;
+    saveJoinSettings();
+    return message.reply({
+      embeds: [embed('HAOS • JOIN CHANNEL', `Obaveštenja o svakom novom članu slaće se u ${selectedChannel}.`)]
+    });
+  }
+
+  // HAOS INVITE KOMANDE
+  if (['invites', 'invite', 'i'].includes(command)) {
+    const target = message.mentions.users.first() || message.author;
+    const stats = getInviteUser(message.guild.id, target.id);
+    const inviteEmbed = new EmbedBuilder()
+      .setColor(COLOR)
+      .setDescription(
+        `**${target.username}**\n` +
+        `You currently have **${stats.total}** invites. ` +
+        `(**${stats.regular}** regular, **${stats.left}** left, ` +
+        `**${stats.fake}** fake, **${stats.bonus}** bonus)`
+      );
+
+    return message.reply({ embeds: [inviteEmbed] });
+  }
+
+  if (['invitetop', 'inviteleaderboard', 'topinvites'].includes(command)) {
+    const leaderboard = await buildInviteLeaderboard(message.guild, 0);
+    return message.reply({
+      embeds: [leaderboard],
+      components: [inviteLeaderboardButtons(message.guild.id, 0)]
+    });
+  }
+
+  if (command === 'invitebonus') {
+    if (!message.member.permissions.has(PermissionFlagsBits.Administrator)) {
+      return message.reply({ embeds: [embed('HAOS • INVITES', 'Samo administratori mogu menjati bonus pozivnice.')] });
+    }
+    const target = message.mentions.users.first();
+    const amount = Number(args[1]);
+    if (!target || !Number.isInteger(amount) || amount < 1 || amount > 10000) {
+      return message.reply({ embeds: [embed('HAOS • INVITES', 'Upotreba: `.invitebonus @korisnik 1`')] });
+    }
+    const stats = getInviteUser(message.guild.id, target.id);
+    stats.bonus += amount;
+    stats.total += amount;
+    saveInviteData();
+    return message.reply({ embeds: [embed('HAOS • INVITES', `Dodeljeno je **${amount} bonus** pozivnica korisniku ${target}.`)] });
+  }
+
+  if (command === 'invitereset') {
+    if (!message.member.permissions.has(PermissionFlagsBits.Administrator)) {
+      return message.reply({ embeds: [embed('HAOS • INVITES', 'Samo administratori mogu resetovati invite statistiku.')] });
+    }
+    const target = message.mentions.users.first();
+    if (!target) return message.reply({ embeds: [embed('HAOS • INVITES', 'Upotreba: `.invitereset @korisnik`')] });
+    delete getGuildInviteData(message.guild.id).users[target.id];
+    for (const [joinedId, join] of Object.entries(getGuildInviteData(message.guild.id).joins)) {
+      if (join.inviterId === target.id) delete getGuildInviteData(message.guild.id).joins[joinedId];
+    }
+    saveInviteData();
+    return message.reply({ embeds: [embed('HAOS • INVITES', `Invite statistika za ${target} je resetovana.`)] });
+  }
+
+  if (command === 'lb' || command === 'leaderboard') {
+    // .leaderboard invites — Invite Tracker-style paginated leaderboard.
+    if (command === 'leaderboard' && args[0]?.toLowerCase() === 'invites') {
+      const leaderboard = await buildInviteLeaderboard(message.guild, 0);
+      return message.reply({
+        embeds: [leaderboard],
+        components: [inviteLeaderboardButtons(message.guild.id, 0)]
+      });
+    }
+
     try {
       // Povlačimo sve pozivnice sa servera
       const invites = await message.guild.invites.fetch();
@@ -1284,7 +1627,7 @@ if (command === 'mc' || command === 'membercount') {
       const deletedMessages = await message.channel.bulkDelete(amount, true);
 
       log(message.guild, 'PURGE • Poruke obrisane',
-        `Broj obrisanih poruka: ${deletedMessages.size}\nKanal: ${message.channel}\nModerator: ${message.author.tag}`);
+                  `Broj obrisanih poruka: ${deletedMessages.size}\nKanal: ${message.channel}\nModerator: ${message.author.tag}`);
 
       const successEmbed = new EmbedBuilder()
         .setColor('#00BFFF')
@@ -1416,7 +1759,8 @@ if (command === 'mc' || command === 'membercount') {
     }
 
     const target = message.mentions.members.first();
-        if (!target) {
+
+    if (!target) {
       return message.reply('❌ Upotreba: `.opomena @član razlog`');
     }
 
@@ -2830,6 +3174,84 @@ client.on(Events.InteractionCreate, async interaction => {
   await interaction.update({
     embeds: [leaderboard],
     components: [haosLeaderboardMenu(metric, ownerId)]
+  });
+});
+
+
+// Održava invite cache ažurnim kada se linkovi kreiraju ili brišu.
+client.on(Events.InviteCreate, invite => {
+  const cache = inviteCache.get(invite.guild.id) || new Map();
+  cache.set(invite.code, { uses: invite.uses || 0, inviterId: invite.inviter?.id || null });
+  inviteCache.set(invite.guild.id, cache);
+});
+
+client.on(Events.InviteDelete, invite => {
+  const cache = inviteCache.get(invite.guild.id);
+  if (cache) cache.delete(invite.code);
+});
+
+// Invite Tracker join log: regular inviter ili vanity invite.
+client.on(Events.GuildMemberAdd, async member => {
+  const result = await trackMemberInvite(member);
+  if (!result) return;
+
+  const channel = member.guild.channels.cache.get(process.env.INVITE_LOG_CHANNEL_ID || '');
+  if (!channel?.isTextBased()) return;
+
+  let description;
+  if (result.vanity) {
+    description = `**${member.user.tag}** joined using a vanity invite.`;
+  } else {
+    const inviter = await client.users.fetch(result.inviterId).catch(() => null);
+    const stats = getInviteUser(member.guild.id, result.inviterId);
+    description =
+      `${member} je ušao/la na server invite-ovan/a je od strane **${inviter?.username || 'Nepoznat korisnik'}** ` +
+      `koji/ja sada ima **${stats.total}** invite-ova.`;
+  }
+
+  const notice = new EmbedBuilder()
+    .setColor(COLOR)
+    .setDescription(description)
+    .setThumbnail(member.user.displayAvatarURL({ size: 128 }));
+  channel.send({ embeds: [notice], allowedMentions: { users: [member.id] } }).catch(() => {});
+});
+
+// Evidentira odlazak člana i ažurira broj aktivnih pozvanih članova.
+client.on(Events.GuildMemberRemove, member => {
+  const guildData = getGuildInviteData(member.guild.id);
+  const join = guildData.joins[member.id];
+  if (!join?.inviterId) return;
+  const stats = getInviteUser(member.guild.id, join.inviterId);
+  if (!join.fake) stats.left += 1;
+  delete guildData.joins[member.id];
+  saveInviteData();
+});
+
+
+// Invite leaderboard pagination buttons.
+client.on(Events.InteractionCreate, async interaction => {
+  if (!interaction.isButton() || !interaction.customId.startsWith('haos_invites_')) return;
+
+  const parts = interaction.customId.split('_');
+  const action = parts[2];
+  const guildId = parts[3];
+  const currentPage = Number(parts[4]) || 0;
+  if (!interaction.guild || interaction.guild.id !== guildId) {
+    return interaction.reply({ content: 'Ova rang-lista više nije dostupna.', ephemeral: true });
+  }
+
+  const users = Object.values(getGuildInviteData(guildId).users)
+    .filter(stats => (stats.total || 0) > 0);
+  const totalPages = Math.max(1, Math.ceil(users.length / 10));
+  let nextPage = currentPage;
+  if (action === 'first') nextPage = 0;
+  else if (action === 'prev') nextPage = Math.max(0, currentPage - 1);
+  else if (action === 'next') nextPage = Math.min(totalPages - 1, currentPage + 1);
+
+  const leaderboard = await buildInviteLeaderboard(interaction.guild, nextPage);
+  await interaction.update({
+    embeds: [leaderboard],
+    components: [inviteLeaderboardButtons(guildId, nextPage)]
   });
 });
 
