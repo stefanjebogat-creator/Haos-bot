@@ -83,6 +83,15 @@ function getGuildInviteData(guildId) {
   return inviteData[guildId];
 }
 
+function inviteWord(count) {
+  const n = Math.abs(Number(count)) % 100;
+  const last = n % 10;
+  if (n >= 11 && n <= 14) return 'pozivnica';
+  if (last === 1) return 'pozivnica';
+  if (last >= 2 && last <= 4) return 'pozivnice';
+  return 'pozivnica';
+}
+
 function getInviteUser(guildId, userId) {
   const guild = getGuildInviteData(guildId);
   if (!guild.users[userId]) {
@@ -522,7 +531,7 @@ async function buildHaosLeaderboard(guild, metric = 'xp') {
       .setDescription(metric === 'voice'
         ? 'Još nema zabeleženog voice vremena.'
         : 'Još nema XP podataka. Pošaljite poruke da biste počeli!')
-      .setFooter({ text: 'HAOS • LEADERBOARD' });
+      .setFooter({ text: 'HAOS • RANG-LISTA' });
   }
 
   const maxScore = Math.max(1, scoreOf(filtered[0]));
@@ -558,7 +567,7 @@ async function buildHaosLeaderboard(guild, metric = 'xp') {
       `**${metric === 'voice' ? 'Voice Time' : 'Overall XP'}**\n\n` +
       rows.join('\n\n')
     )
-    .setFooter({ text: 'HAOS • LEADERBOARD' });
+    .setFooter({ text: 'HAOS • RANG-LISTA' });
 }
 
 function haosLeaderboardMenu(metric, ownerId) {
@@ -590,18 +599,18 @@ async function buildInviteLeaderboard(guild, page = 0) {
     const user = await client.users.fetch(userId).catch(() => null);
     const position = safePage * pageSize + index + 1;
     lines.push(
-      `**${position}.** <@${userId}> • **${stats.total}** invites. ` +
-      `(${stats.regular} regular, ${stats.left} left, ${stats.fake} fake, ${stats.bonus} bonus)`
+      `**${position}.** <@${userId}> • **${stats.total}** ${inviteWord(stats.total)}. ` +
+      `(${stats.regular} važećih, ${stats.left} napustilo server, ${stats.fake} lažnih, ${stats.bonus} bonus)`
     );
   }
 
   return new EmbedBuilder()
     .setColor(COLOR)
     .setDescription(
-      `**Invites Leaderboard**\n\n` +
+      `**Rang-lista pozivnica**\n\n` +
       (lines.join('\n') || 'Još nema zabeleženih pozivnica.')
     )
-    .setFooter({ text: `HAOS Invite Tracker • Page ${safePage + 1}/${totalPages} • Today at ${new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` });
+    .setFooter({ text: `HAOS • Rang-lista pozivnica • Strana ${safePage + 1}/${totalPages} • Danas u ${new Date().toLocaleTimeString('sr-RS', { hour: '2-digit', minute: '2-digit' })}` });
 }
 
 function inviteLeaderboardButtons(guildId, page) {
@@ -1122,9 +1131,9 @@ client.on(Events.MessageCreate, async message => {
       .setColor(COLOR)
       .setDescription(
         `**${target.username}**\n` +
-        `You currently have **${stats.total}** invites. ` +
-        `(**${stats.regular}** regular, **${stats.left}** left, ` +
-        `**${stats.fake}** fake, **${stats.bonus}** bonus)`
+        `Trenutno imaš **${stats.total}** ${inviteWord(stats.total)}. ` +
+        `(**${stats.regular}** važećih, **${stats.left}** napustilo server, ` +
+        `**${stats.fake}** lažnih, **${stats.bonus}** bonus)`
       );
 
     return message.reply({ embeds: [inviteEmbed] });
@@ -1140,32 +1149,32 @@ client.on(Events.MessageCreate, async message => {
 
   if (command === 'invitebonus') {
     if (!message.member.permissions.has(PermissionFlagsBits.Administrator)) {
-      return message.reply({ embeds: [embed('HAOS • INVITES', 'Samo administratori mogu menjati bonus pozivnice.')] });
+      return message.reply({ embeds: [embed('HAOS • POZIVNICE', 'Samo administratori mogu da menjaju bonus pozivnice.')] });
     }
     const target = message.mentions.users.first();
     const amount = Number(args[1]);
     if (!target || !Number.isInteger(amount) || amount < 1 || amount > 10000) {
-      return message.reply({ embeds: [embed('HAOS • INVITES', 'Upotreba: `.invitebonus @korisnik 1`')] });
+      return message.reply({ embeds: [embed('HAOS • POZIVNICE', 'Korišćenje: `.invitebonus @korisnik 1`')] });
     }
     const stats = getInviteUser(message.guild.id, target.id);
     stats.bonus += amount;
     stats.total += amount;
     saveInviteData();
-    return message.reply({ embeds: [embed('HAOS • INVITES', `Dodeljeno je **${amount} bonus** pozivnica korisniku ${target}.`)] });
+    return message.reply({ embeds: [embed('HAOS • POZIVNICE', `Korisniku ${target} dodato je **${amount}** bonus pozivnica.`)] });
   }
 
   if (command === 'invitereset') {
     if (!message.member.permissions.has(PermissionFlagsBits.Administrator)) {
-      return message.reply({ embeds: [embed('HAOS • INVITES', 'Samo administratori mogu resetovati invite statistiku.')] });
+      return message.reply({ embeds: [embed('HAOS • POZIVNICE', 'Samo administratori mogu da resetuju statistiku pozivnica.')] });
     }
     const target = message.mentions.users.first();
-    if (!target) return message.reply({ embeds: [embed('HAOS • INVITES', 'Upotreba: `.invitereset @korisnik`')] });
+    if (!target) return message.reply({ embeds: [embed('HAOS • POZIVNICE', 'Korišćenje: `.invitereset @korisnik`')] });
     delete getGuildInviteData(message.guild.id).users[target.id];
     for (const [joinedId, join] of Object.entries(getGuildInviteData(message.guild.id).joins)) {
       if (join.inviterId === target.id) delete getGuildInviteData(message.guild.id).joins[joinedId];
     }
     saveInviteData();
-    return message.reply({ embeds: [embed('HAOS • INVITES', `Invite statistika za ${target} je resetovana.`)] });
+    return message.reply({ embeds: [embed('HAOS • POZIVNICE', `Statistika pozivnica za korisnika ${target} je resetovana.`)] });
   }
 
   if (command === 'lb' || command === 'leaderboard') {
@@ -1622,10 +1631,10 @@ if (command === 'mc' || command === 'membercount') {
     try {
       // Briše komandu koju je korisnik ukucao
       await message.delete().catch(() => {});
-
-      // Briše zadati broj poruka
+            // Briše zadati broj poruka
       const deletedMessages = await message.channel.bulkDelete(amount, true);
-            log(message.guild, 'PURGE • Poruke obrisane',
+
+      log(message.guild, 'PURGE • Poruke obrisane',
         `Broj obrisanih poruka: ${deletedMessages.size}\nKanal: ${message.channel}\nModerator: ${message.author.tag}`);
 
       const successEmbed = new EmbedBuilder()
@@ -3199,13 +3208,13 @@ client.on(Events.GuildMemberAdd, async member => {
 
   let notice;
   if (result.vanity) {
-    notice = `${member.user.tag} joined using a vanity invite.`;
+    notice = `${member.user.tag} se pridružio/la serveru koristeći prilagođenu pozivnicu servera.`;
   } else {
     const inviter = await client.users.fetch(result.inviterId).catch(() => null);
     const stats = getInviteUser(member.guild.id, result.inviterId);
     notice =
-      `${member.user.tag} joined the server invited by ${inviter?.username || 'Unknown user'}, ` +
-      `who now has ${stats.total} invites.`;
+      `${member.user.tag} se pridružio/la serveru preko pozivnice korisnika ${inviter?.username || 'nepoznatog korisnika'}, ` +
+      `koji sada ima ${stats.total} ${inviteWord(stats.total)}.`;
   }
 
   channel.send({
