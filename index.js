@@ -106,7 +106,7 @@ function refreshDailyCounters(user) {
 function makeLevelProgressBar(current, required, size = 20) {
   const percent = required > 0 ? Math.min(1, current / required) : 0;
   const filled = Math.round(percent * size);
-  return `${'▰'.repeat(filled)}${'▱'.repeat(size - filled)}  **${Math.floor(percent * 100)}%**`;
+  return `${'━'.repeat(filled)}${'─'.repeat(size - filled)}  **${Math.floor(percent * 100)}%**`;
 }
 
 function formatVoiceTime(milliseconds) {
@@ -380,17 +380,17 @@ async function buildHaosLeaderboard(guild, metric = 'xp') {
     const score = scoreOf(filtered[index]);
     const barSize = 24;
     const filled = Math.max(score > 0 ? 1 : 0, Math.round((score / maxScore) * barSize));
-    const bar = `${'▰'.repeat(filled)}${'▱'.repeat(barSize - filled)}`;
+    const bar = `${'━'.repeat(filled)}${'─'.repeat(barSize - filled)}`;
 
     if (metric === 'voice') {
       rows.push(
-        `${medals[index] || `**#${index + 1}**`} **${username}**\n` +
-        `\`${bar}\`  **${formatVoiceTime(score)}**`
+        `${medals[index] || `**#${index + 1}**`} **${username}**  •  **${formatVoiceTime(score)}**\n` +
+        `\`${bar}\``
       );
     } else {
       rows.push(
-        `${medals[index] || `**#${index + 1}**`} **${username}**  •  LVL **${data.level || 0}**\n` +
-        `\`${bar}\`  **${Number(data.totalXp || 0).toLocaleString('sr-RS')} XP**`
+        `${medals[index] || `**#${index + 1}**`} **${username}**  •  LVL **${data.level || 0}**  •  **${Number(data.totalXp || 0).toLocaleString('sr-RS')} XP**\n` +
+        `\`${bar}\``
       );
     }
   }
@@ -637,7 +637,7 @@ client.on(Events.MessageCreate, async message => {
     const percent = Math.min(1, requiredXP > 0 ? data.xp / requiredXP : 0);
     const barSize = 36;
     const filled = Math.round(percent * barSize);
-    const progress = `${'▰'.repeat(filled)}${'▱'.repeat(barSize - filled)}`;
+    const progress = `${'━'.repeat(filled)}${'─'.repeat(barSize - filled)}`;
 
     const profileEmbed = new EmbedBuilder()
       .setColor('#00BFFF')
@@ -647,7 +647,7 @@ client.on(Events.MessageCreate, async message => {
       })
       .setThumbnail(avatar)
       .setDescription(
-        `**Level:** ${data.level} **XP:** ${data.xp.toLocaleString('sr-RS')} / ${requiredXP.toLocaleString('sr-RS')} **Rank:** ${rank > 0 ? rank : '—'}\n\n` +
+        `**Level:** ${data.level}   **XP:** ${data.xp.toLocaleString('sr-RS')} / ${requiredXP >= 1000 ? (requiredXP / 1000).toFixed(1) + 'K' : requiredXP.toLocaleString('sr-RS')}   **Rank:** ${rank > 0 ? rank : '—'}\n\n` +
         `\`${progress}\``
       );
 
@@ -672,7 +672,7 @@ client.on(Events.MessageCreate, async message => {
     const percent = Math.min(100, Math.floor((voiceTime / maxVoiceTime) * 100));
     const barSize = 28;
     const filled = Math.round((percent / 100) * barSize);
-    const progress = `${'▰'.repeat(filled)}${'▱'.repeat(barSize - filled)}`;
+    const progress = `${'━'.repeat(filled)}${'─'.repeat(barSize - filled)}`;
     const avatar = targetUser.displayAvatarURL({ size: 256 });
 
     const voiceEmbed = new EmbedBuilder()
