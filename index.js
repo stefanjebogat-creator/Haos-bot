@@ -1339,24 +1339,28 @@ client.on(Events.MessageCreate, async message => {
       return message.reply({ embeds: [noPermEmbed] });
     }
 
-    const target = message.mentions.members.first();
-    // Čita tekst direktno iz poruke nakon korisničkog taga.
-    // Tako pouzdano podržava nazive uloga sa više reči.
-    const commandText = message.content.slice(PREFIX.length).trim();
-    const textAfterCommand = commandText.replace(/^\S+\s+/, '');
-    const userMentionMatch = textAfterCommand.match(/^<@!?\d+>\s*/);
-    const roleNameOrId = userMentionMatch
-      ? textAfterCommand.slice(userMentionMatch[0].length).trim()
-      : '';
+    // Uzimamo ID korisnika direktno iz sirovog teksta poruke (pouzdanije od cache mention-a).
+    const rawCommandText = message.content.slice(PREFIX.length).trim();
+    const targetMatch = rawCommandText.match(/^\S+\s+<@!?(\d+)>/);
+    const target = targetMatch
+      ? (message.guild.members.cache.get(targetMatch[1]) || await message.guild.members.fetch(targetMatch[1]).catch(() => null))
+      : message.mentions.members.first();
 
-    // Zanemaruje velika/mala slova, razmake, donje crte, crtice i backslash u nazivu.
+    // Sve posle korisnickog taga je naziv/ID uloge; podrzava nazive sa razmacima.
+    const roleNameOrId = targetMatch
+      ? rawCommandText.slice(targetMatch[0].length).trim()
+      : args.slice(1).filter(part => !/^<@!?\d+>$/.test(part)).join(' ').trim();
+
+    // Uklanja razmake, kosu crtu, crtice, emoji i ostale znakove iz naziva uloge.
+    // Npr. "\ pic perms", "pic perms" i "picperms" se poklapaju.
     const normalizeRoleName = value => String(value || '')
       .normalize('NFKC')
       .toLocaleLowerCase('sr')
-      .replace(/[\\\s_-]+/g, '');
+      .replace(/[^\p{L}\p{N}]/gu, '');
     const normalizedRoleQuery = normalizeRoleName(roleNameOrId);
+    const roleId = roleNameOrId.match(/^<@&(\d+)>$/)?.[1] || roleNameOrId;
     const roleMention = message.mentions.roles.first() ||
-      message.guild.roles.cache.get(roleNameOrId) ||
+      message.guild.roles.cache.get(roleId) ||
       message.guild.roles.cache.find(role => normalizeRoleName(role.name) === normalizedRoleQuery);
 
     // 2. Pogrešna upotreba (Ukucano samo .giverole)
@@ -1436,24 +1440,28 @@ client.on(Events.MessageCreate, async message => {
       return message.reply({ embeds: [noPermEmbed] });
     }
 
-    const target = message.mentions.members.first();
-    // Čita tekst direktno iz poruke nakon korisničkog taga.
-    // Tako pouzdano podržava nazive uloga sa više reči.
-    const commandText = message.content.slice(PREFIX.length).trim();
-    const textAfterCommand = commandText.replace(/^\S+\s+/, '');
-    const userMentionMatch = textAfterCommand.match(/^<@!?\d+>\s*/);
-    const roleNameOrId = userMentionMatch
-      ? textAfterCommand.slice(userMentionMatch[0].length).trim()
-      : '';
+    // Uzimamo ID korisnika direktno iz sirovog teksta poruke (pouzdanije od cache mention-a).
+    const rawCommandText = message.content.slice(PREFIX.length).trim();
+    const targetMatch = rawCommandText.match(/^\S+\s+<@!?(\d+)>/);
+    const target = targetMatch
+      ? (message.guild.members.cache.get(targetMatch[1]) || await message.guild.members.fetch(targetMatch[1]).catch(() => null))
+      : message.mentions.members.first();
 
-    // Zanemaruje velika/mala slova, razmake, donje crte, crtice i backslash u nazivu.
+    // Sve posle korisnickog taga je naziv/ID uloge; podrzava nazive sa razmacima.
+    const roleNameOrId = targetMatch
+      ? rawCommandText.slice(targetMatch[0].length).trim()
+      : args.slice(1).filter(part => !/^<@!?\d+>$/.test(part)).join(' ').trim();
+
+    // Uklanja razmake, kosu crtu, crtice, emoji i ostale znakove iz naziva uloge.
+    // Npr. "\ pic perms", "pic perms" i "picperms" se poklapaju.
     const normalizeRoleName = value => String(value || '')
       .normalize('NFKC')
       .toLocaleLowerCase('sr')
-      .replace(/[\\\s_-]+/g, '');
+      .replace(/[^\p{L}\p{N}]/gu, '');
     const normalizedRoleQuery = normalizeRoleName(roleNameOrId);
+    const roleId = roleNameOrId.match(/^<@&(\d+)>$/)?.[1] || roleNameOrId;
     const roleMention = message.mentions.roles.first() ||
-      message.guild.roles.cache.get(roleNameOrId) ||
+      message.guild.roles.cache.get(roleId) ||
       message.guild.roles.cache.find(role => normalizeRoleName(role.name) === normalizedRoleQuery);
 
     if (!target || !roleMention) {
@@ -1656,12 +1664,11 @@ if (command === 'mc' || command === 'membercount') {
         .setColor('#00BFFF')
         .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Ne mogu pronaći navedenog korisnika.');
-
-      return message.reply({ embeds: [errorEmbed] });
+            return message.reply({ embeds: [errorEmbed] });
     }
 
     const bannerURL = targetUser.bannerURL({
-            size: 4096,
+      size: 4096,
       extension: 'png'
     });
 
