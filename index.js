@@ -1265,6 +1265,15 @@ client.on(Events.MessageCreate, async message => {
   }
 
   if (command === 'lb' || command === 'leaderboard') {
+    // .lb sada koristi novi HAOS Invite Tracker sistem (regular/fake/left/bonus).
+    if (command === 'lb') {
+      const leaderboard = await buildInviteLeaderboard(message.guild, 0);
+      return message.reply({
+        embeds: [leaderboard],
+        components: [inviteLeaderboardButtons(message.guild.id, 0)]
+      });
+    }
+
     // .leaderboard invites — Invite Tracker-style paginated leaderboard.
     if (command === 'leaderboard' && args[0]?.toLowerCase() === 'invites') {
       const leaderboard = await buildInviteLeaderboard(message.guild, 0);
@@ -1607,7 +1616,7 @@ if (command === 'mc' || command === 'membercount') {
 
       const userEmbed = new EmbedBuilder()
         .setColor('#00BFFF')
-        .setTitle('<:46005info11:1559323801387401336> Haos Client — User Info')
+              .setTitle('<:46005info11:1559323801387401336> Haos Client — User Info')
         .setThumbnail(user.displayAvatarURL({ dynamic: true, size: 1024 }))
         .setDescription(
           `- **Korisnik:** ${user.tag} (${user})\n` +
@@ -1675,7 +1684,8 @@ if (command === 'mc' || command === 'membercount') {
     const member = message.mentions.users.first();
     const userId = member?.id || args[0]?.replace(/[<@!>]/g, '');
     let targetUser;
-        try {
+
+    try {
       targetUser = userId
         ? await client.users.fetch(userId, { force: true })
         : await client.users.fetch(message.author.id, { force: true });
