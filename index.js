@@ -1343,12 +1343,18 @@ client.on(Events.MessageCreate, async message => {
     // Ukloni komandu i korisnicki tag iz argumenata, pa ostatak tretiraj kao naziv uloge.
     // Podrzava: .giverole @korisnik naziv uloge, ID uloge ili tag uloge.
     const roleNameOrId = args.slice(1)
-      .filter(part => !/^<@!?\d+>$/.test(part))
+      .filter(part => !/^<@!?\d+>$/.test(part) && !/^<@&\d+>$/.test(part))
       .join(' ')
       .trim();
+    // Poredi naziv uloge bez obzira na velika/mala slova i razmake.
+    const normalizeRoleName = value => String(value || '')
+      .normalize('NFKC')
+      .toLocaleLowerCase('sr')
+      .replace(/[\s_-]+/g, '');
+    const normalizedRoleQuery = normalizeRoleName(roleNameOrId);
     const roleMention = message.mentions.roles.first() ||
       message.guild.roles.cache.get(roleNameOrId) ||
-      message.guild.roles.cache.find(role => role.name.trim().toLowerCase() === roleNameOrId.toLowerCase());
+      message.guild.roles.cache.find(role => normalizeRoleName(role.name) === normalizedRoleQuery);
 
     // 2. Pogrešna upotreba (Ukucano samo .giverole)
     if (!target || !roleMention) {
@@ -1431,12 +1437,18 @@ client.on(Events.MessageCreate, async message => {
     // Ukloni komandu i korisnicki tag iz argumenata, pa ostatak tretiraj kao naziv uloge.
     // Podrzava: .giverole @korisnik naziv uloge, ID uloge ili tag uloge.
     const roleNameOrId = args.slice(1)
-      .filter(part => !/^<@!?\d+>$/.test(part))
+      .filter(part => !/^<@!?\d+>$/.test(part) && !/^<@&\d+>$/.test(part))
       .join(' ')
       .trim();
+    // Poredi naziv uloge bez obzira na velika/mala slova i razmake.
+    const normalizeRoleName = value => String(value || '')
+      .normalize('NFKC')
+      .toLocaleLowerCase('sr')
+      .replace(/[\s_-]+/g, '');
+    const normalizedRoleQuery = normalizeRoleName(roleNameOrId);
     const roleMention = message.mentions.roles.first() ||
       message.guild.roles.cache.get(roleNameOrId) ||
-      message.guild.roles.cache.find(role => role.name.trim().toLowerCase() === roleNameOrId.toLowerCase());
+      message.guild.roles.cache.find(role => normalizeRoleName(role.name) === normalizedRoleQuery);
 
     if (!target || !roleMention) {
       const usageEmbed = new EmbedBuilder()
@@ -1583,7 +1595,7 @@ if (command === 'mc' || command === 'membercount') {
         .setDescription('- Došlo je do greške prilikom pribavljanja informacija o korisniku.');
 
       return message.reply({ embeds: [errEmbed] });
-    }
+          }
   }
   
  // AVATAR (.av / .avatar)
@@ -1594,7 +1606,7 @@ if (command === 'mc' || command === 'membercount') {
 
     try {
       targetUser = userId
-              ? await client.users.fetch(userId, { force: true })
+        ? await client.users.fetch(userId, { force: true })
         : message.author;
     } catch {
       const errorEmbed = new EmbedBuilder()
