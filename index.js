@@ -1340,7 +1340,7 @@ client.on(Events.MessageCreate, async message => {
     }
 
     const target = message.mentions.members.first();
-    const roleNameOrId = args.join(' ').trim();
+    const roleNameOrId = args.slice(1).join(' ').trim();
     const roleMention = message.mentions.roles.first() ||
       message.guild.roles.cache.get(roleNameOrId) ||
       message.guild.roles.cache.find(role => role.name.toLowerCase() === roleNameOrId.toLowerCase());
@@ -1423,7 +1423,7 @@ client.on(Events.MessageCreate, async message => {
     }
 
     const target = message.mentions.members.first();
-    const roleNameOrId = args.join(' ').trim();
+    const roleNameOrId = args.slice(1).join(' ').trim();
     const roleMention = message.mentions.roles.first() ||
       message.guild.roles.cache.get(roleNameOrId) ||
       message.guild.roles.cache.find(role => role.name.toLowerCase() === roleNameOrId.toLowerCase());
@@ -1590,7 +1590,7 @@ if (command === 'mc' || command === 'membercount') {
       const errorEmbed = new EmbedBuilder()
         .setColor('#00BFFF')
         .setTitle('<:985760memberserver:1558975144016216094> Haos Client — Greška')
-        .setDescription('- Ne mogu pronaći navedenog korisnika.');
+              .setDescription('- Ne mogu pronaći navedenog korisnika.');
 
       return message.reply({ embeds: [errorEmbed] });
     }
@@ -1647,7 +1647,7 @@ if (command === 'mc' || command === 'membercount') {
     }
 
     const embed = new EmbedBuilder()
-          .setColor('#00BFFF')
+      .setColor('#00BFFF')
       .setTitle('<:61048photosfolder:1558977971920838656> Haos Client — Banner')
       .setDescription(
         `- Baner korisnika: ${targetUser}\n` +
