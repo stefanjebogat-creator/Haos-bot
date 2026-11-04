@@ -1196,14 +1196,28 @@ client.on(Events.MessageCreate, async message => {
     if (!message.member.permissions.has(PermissionFlagsBits.Administrator)) {
       return message.reply({ embeds: [embed('HAOS • POZIVNICE', 'Samo administratori mogu da resetuju statistiku pozivnica.')] });
     }
+    const guildData = getGuildInviteData(message.guild.id);
     const target = message.mentions.users.first();
-    if (!target) return message.reply({ embeds: [embed('HAOS • POZIVNICE', 'Korišćenje: `.resetinvites @korisnik`')] });
-    delete getGuildInviteData(message.guild.id).users[target.id];
-    for (const [joinedId, join] of Object.entries(getGuildInviteData(message.guild.id).joins)) {
-      if (join.inviterId === target.id) delete getGuildInviteData(message.guild.id).joins[joinedId];
+
+    // Bez oznacenog korisnika: resetuje kompletnu invite statistiku servera.
+    if (!target) {
+      guildData.users = {};
+      guildData.joins = {};
+      saveInviteData();
+      return message.reply({
+        embeds: [embed('HAOS • POZIVNICE', 'Kompletna statistika pozivnica za sve članove servera je resetovana.')]
+      });
+    }
+
+    // Sa oznacenim korisnikom: resetuje samo njegovu statistiku.
+    delete guildData.users[target.id];
+    for (const [joinedId, join] of Object.entries(guildData.joins)) {
+      if (join.inviterId === target.id) delete guildData.joins[joinedId];
     }
     saveInviteData();
-    return message.reply({ embeds: [embed('HAOS • POZIVNICE', `Statistika pozivnica za korisnika ${target} je resetovana.`)] });
+    return message.reply({
+      embeds: [embed('HAOS • POZIVNICE', `Statistika pozivnica za korisnika ${target} je resetovana.`)]
+    });
   }
 
   if (command === 'lb' || command === 'leaderboard') {
@@ -1637,15 +1651,14 @@ if (command === 'mc' || command === 'membercount') {
         .setColor('#00BFFF')
         .setTitle('<:30748bannedrole:1558942653649916044> Haos Client — Greška')
         .setDescription('- Nemate potrebne dozvole za brisanje poruka (`ManageMessages`).');
-
-      return message.reply({ embeds: [noPermEmbed] });
+            return message.reply({ embeds: [noPermEmbed] });
     }
 
     const amount = parseInt(args[0]);
 
     // Provera da li je broj validan i u rasponu od 1 do 100
     if (isNaN(amount) || amount < 1 || amount > 100) {
-            const usageEmbed = new EmbedBuilder()
+      const usageEmbed = new EmbedBuilder()
         .setColor('#00BFFF')
         .setTitle('<:78160deleteguild:1559152462680555660> Haos Client — Purge')
         .setDescription(
