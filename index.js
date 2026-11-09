@@ -1400,6 +1400,77 @@ client.on(Events.MessageCreate, async message => {
       message.guild.roles.cache.get(roleNameOrId) ||
       message.guild.roles.cache.find(role => normalizeRoleName(role.name) === normalizedRoleQuery);
 
+    // .giverole @uloga all — dodeljuje ulogu svim članovima servera.
+    if (args.some(arg => arg.toLowerCase() === 'all')) {
+      if (!roleMention) {
+        return message.reply({
+          embeds: [embed('HAOS • GIVEROLE ALL', 'Upotreba: `.giverole @uloga all`')]
+        });
+      }
+
+      if (
+        roleMention.position >= message.member.roles.highest.position &&
+        message.guild.ownerId !== message.author.id
+      ) {
+        return message.reply({
+          embeds: [embed('HAOS • GIVEROLE ALL', 'Ne možete dodeliti ulogu koja je ista ili viša od vaše najviše uloge.')]
+        });
+      }
+
+      const botMember = message.guild.members.me;
+      if (!botMember?.permissions.has(PermissionFlagsBits.ManageRoles) ||
+          roleMention.position >= botMember.roles.highest.position) {
+        return message.reply({
+          embeds: [embed('HAOS • GIVEROLE ALL', 'Bot nema dozvolu Manage Roles ili je tražena uloga iznad njegove najviše uloge.')]
+        });
+      }
+
+      try {
+        await message.reply({
+          embeds: [embed('HAOS • GIVEROLE ALL', `Započinjem dodelu uloge ${roleMention} svim članovima servera...`)]
+        });
+
+        const members = await message.guild.members.fetch();
+        let added = 0;
+        let alreadyHad = 0;
+        let failed = 0;
+
+        // Sekvencijalna dodela smanjuje rizik od Discord rate limita.
+        for (const member of members.values()) {
+          if (member.roles.cache.has(roleMention.id)) {
+            alreadyHad++;
+            continue;
+          }
+
+          try {
+            await member.roles.add(roleMention, `Mass role assignment by ${message.author.tag}`);
+            added++;
+          } catch (error) {
+            failed++;
+            console.error(`Ne mogu dodeliti ${roleMention.name} korisniku ${member.user.tag}:`, error.message);
+          }
+        }
+
+        log(message.guild, 'Uloga masovno dodeljena',
+          `Uloga: ${roleMention.name}\nModerator: ${message.author.tag}\nDodeljeno: ${added}\nVeć imalo: ${alreadyHad}\nGreške: ${failed}`);
+
+        return message.channel.send({
+          embeds: [embed(
+            'HAOS • GIVEROLE ALL',
+            `**Uloga:** ${roleMention}\n` +
+            `**Uspešno dodeljena:** ${added}\n` +
+            `**Već imalo ulogu:** ${alreadyHad}\n` +
+            `**Neuspešne dodele:** ${failed}`
+          )]
+        });
+      } catch (error) {
+        console.error('Greška pri masovnoj dodeli uloge:', error);
+        return message.channel.send({
+          embeds: [embed('HAOS • GIVEROLE ALL', 'Nisam uspeo da učitam članove ili završim masovnu dodelu. Proveri Server Members Intent i dozvole bota.')]
+        });
+      }
+    }
+
     // 2. Pogrešna upotreba (Ukucano samo .giverole)
     if (!target || !roleMention) {
       const usageEmbed = new EmbedBuilder()
@@ -1645,7 +1716,7 @@ if (command === 'mc' || command === 'membercount') {
  // AVATAR (.av / .avatar)
   if (['av', 'avatar'].includes(command)) {
     const member = message.mentions.users.first();
-    const userId = member?.id || args[0]?.replace(/[<@!>]/g, '');
+        const userId = member?.id || args[0]?.replace(/[<@!>]/g, '');
     let targetUser;
 
     try {
